@@ -20,7 +20,7 @@ export interface ScrobblerAuthFactoryParams {
  * upsert a user row by telegram ID — creates on first encounter, no-ops on repeat.
  * returns the internal numeric user ID
  */
-async function upsertUser(
+export async function upsertUser(
   telegramId: bigint,
   language: string | undefined
 ): Promise<number> {
@@ -49,7 +49,7 @@ async function upsertUser(
  * upsert a service_connections row — replaces authToken & serviceUsername when
  * the user reconnects the same service
  */
-async function upsertServiceConnection(
+export async function upsertServiceConnection(
   userId: number,
   serviceType: string,
   sessionKey: string,
