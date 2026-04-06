@@ -181,3 +181,87 @@ export function getAuthUrl(config: LastfmConfig, token: string): string {
   url.searchParams.set("token", token);
   return url.toString();
 }
+
+/** normalised track data from user.getRecentTracks */
+export interface RecentTrack {
+  artist: string;
+  track: string;
+  album: string;
+  albumArtUrl: string | null;
+  trackUrl: string;
+  isNowPlaying: boolean;
+  /** human-readable timestamp, null when the track is currently playing */
+  timestamp: string | null;
+}
+
+/** raw image entry from the Last.fm track payload */
+interface LastfmImage {
+  "#text": string;
+  size: string;
+}
+
+/** raw track entry from user.getRecentTracks */
+interface LastfmTrackEntry {
+  name: string;
+  url: string;
+  artist: { "#text": string };
+  album: { "#text": string };
+  image: LastfmImage[];
+  date?: { uts: string; "#text": string };
+  "@attr"?: { nowplaying: "true" };
+}
+
+/** shape of a successful user.getRecentTracks response */
+interface RecentTracksResponse {
+  recenttracks: {
+    track: LastfmTrackEntry[];
+  };
+}
+
+/**
+ * fetch the most recent (or currently playing) track for a user
+ * via user.getRecentTracks with limit=1 — no signature required
+ */
+export async function getRecentTrack(
+  config: LastfmConfig,
+  username: string
+): Promise<RecentTrack | null> {
+  const url = new URL(config.apiUrl);
+  url.searchParams.set("method", "user.getrecenttracks");
+  url.searchParams.set("user", username);
+  url.searchParams.set("api_key", config.apiKey);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("limit", "1");
+
+  const response = await fetch(url.toString());
+  const data: unknown = await response.json();
+
+  if (isLastfmError(data)) {
+    console.warn(`user.getrecenttracks failed — error ${data.error}: ${data.message}`);
+    return null;
+  }
+
+  const { recenttracks } = data as RecentTracksResponse;
+  const tracks = recenttracks.track;
+
+  if (!tracks.length) {
+    return null;
+  }
+
+  const entry = tracks[0];
+  const isNowPlaying = entry["@attr"]?.nowplaying === "true";
+
+  const extralargeImage = entry.image.find((image) => image.size === "extralarge");
+  /** Last.fm returns an empty string when no art exists — treat that as null */
+  const albumArtUrl = extralargeImage?.["#text"] || null;
+
+  return {
+    artist: entry.artist["#text"],
+    track: entry.name,
+    album: entry.album["#text"],
+    albumArtUrl,
+    trackUrl: entry.url,
+    isNowPlaying,
+    timestamp: isNowPlaying ? null : (entry.date?.["#text"] ?? null),
+  };
+}
