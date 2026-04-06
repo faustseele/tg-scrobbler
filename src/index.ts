@@ -2,6 +2,7 @@ import { Bot } from "grammy";
 import loginLastfm from "./commands/login-lastfm.js";
 import loginLibrefm from "./commands/login-librefm.js";
 import loginListenbrainz from "./commands/login-listenbrainz.js";
+import scrobble from "./commands/scrobble.js";
 
 const botToken = process.env.BOT_TOKEN;
 if (!botToken) {
@@ -19,6 +20,7 @@ bot.command("start", (context) => {
 bot.use(loginLastfm);
 bot.use(loginLibrefm);
 bot.use(loginListenbrainz);
+bot.use(scrobble);
 
 const shutdown = () => {
   bot.stop();
