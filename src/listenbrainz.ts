@@ -60,3 +60,71 @@ export async function validateToken(
 
   return { valid: true, userName };
 }
+
+/** shape of the track_metadata object sent to the submit-listens endpoint */
+interface TrackMetadata {
+  artist_name: string;
+  track_name: string;
+  release_name?: string;
+}
+
+/** shape of a single payload entry for the submit-listens endpoint */
+interface ListenPayloadEntry {
+  listened_at: number;
+  track_metadata: TrackMetadata;
+}
+
+/** shape of the submit-listens request body */
+interface SubmitListensBody {
+  listen_type: "single";
+  payload: [ListenPayloadEntry];
+}
+
+/**
+ * POST a single listen to /1/submit-listens — records a scrobble for the
+ * user identified by the given token
+ */
+export async function submitListen(
+  token: string,
+  artist: string,
+  track: string,
+  timestamp: number,
+  album?: string
+): Promise<void> {
+  const url = new URL("/1/submit-listens", BASE_URL);
+
+  const trackMetadata: TrackMetadata = {
+    artist_name: artist,
+    track_name: track,
+  };
+  if (album !== undefined) {
+    trackMetadata.release_name = album;
+  }
+
+  const body: SubmitListensBody = {
+    listen_type: "single",
+    payload: [{ listened_at: timestamp, track_metadata: trackMetadata }],
+  };
+
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (networkError) {
+    console.warn(`submitListen network error: ${String(networkError)}`);
+    throw networkError;
+  }
+
+  if (!response.ok) {
+    console.warn(
+      `submitListen — ListenBrainz returned ${response.status} for artist="${artist}" track="${track}"`
+    );
+    throw new Error(`ListenBrainz submit-listens failed with status ${response.status}`);
+  }
+}

@@ -116,6 +116,62 @@ export async function getSession(
   return { name: session.name, key: session.key };
 }
 
+/** shape of a successful track.scrobble response */
+interface ScrobbleResponse {
+  scrobbles: {
+    "@attr": { accepted: number; ignored: number };
+  };
+}
+
+/**
+ * submit a single scrobble to the Last.fm (or Libre.fm) API
+ * via track.scrobble — POST, form-encoded
+ */
+export async function scrobbleTrack(
+  config: LastfmConfig,
+  sessionKey: string,
+  artist: string,
+  track: string,
+  timestamp: number,
+  album?: string
+): Promise<void> {
+  const sigParams: Record<string, string> = {
+    api_key: config.apiKey,
+    artist,
+    method: "track.scrobble",
+    sk: sessionKey,
+    timestamp: String(timestamp),
+    track,
+  };
+
+  if (album !== undefined) {
+    sigParams.album = album;
+  }
+
+  const apiSig = createApiSignature(sigParams, config.sharedSecret);
+
+  const body = new URLSearchParams({ ...sigParams, api_sig: apiSig, format: "json" });
+
+  const response = await fetch(config.apiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+
+  const data: unknown = await response.json();
+
+  if (isLastfmError(data)) {
+    console.warn(`track.scrobble failed — error ${data.error}: ${data.message}`);
+    throw new Error(data.message);
+  }
+
+  const scrobbleData = data as ScrobbleResponse;
+  const ignored = scrobbleData.scrobbles["@attr"].ignored;
+  if (ignored > 0) {
+    console.warn(`track.scrobble — ${ignored} scrobble(s) ignored by Last.fm`);
+  }
+}
+
 /**
  * construct the URL where the user authorises the app
  */

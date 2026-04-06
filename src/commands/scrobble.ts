@@ -1,15 +1,15 @@
 import { Composer, Context } from "grammy";
 import { eq } from "drizzle-orm";
 import { db } from "../db.js";
-import { users, serviceConnections } from "../schema.js";
+import { users } from "../schema.js";
 import { extractTrackMetadata } from "../metadata.js";
+import { submitScrobble } from "../scrobble-service.js";
 
 const composer = new Composer<Context>();
 
 /**
  * audio message handler — downloads the file, extracts ID3/Vorbis tags,
- * and echoes artist/title/album back to the user.
- * actual scrobble submission to external services happens later.
+ * then scrobbles to all connected services & reports partial failures
  */
 composer.on("message:audio", async (context) => {
   const from = context.from;
@@ -28,19 +28,6 @@ composer.on("message:audio", async (context) => {
 
   const user = userRow[0];
   if (!user) {
-    await context.reply(
-      "Connect a service first with /login_lastfm, /login_librefm, or /login_listenbrainz"
-    );
-    return;
-  }
-
-  const connections = await db
-    .select({ id: serviceConnections.id })
-    .from(serviceConnections)
-    .where(eq(serviceConnections.userId, user.id))
-    .limit(1);
-
-  if (!connections.length) {
     await context.reply(
       "Connect a service first with /login_lastfm, /login_librefm, or /login_listenbrainz"
     );
@@ -72,10 +59,27 @@ composer.on("message:audio", async (context) => {
     return;
   }
 
+  const { succeeded, failed } = await submitScrobble({
+    userId: user.id,
+    artist: metadata.artist,
+    track: metadata.title,
+    album: metadata.album ?? null,
+    timestamp: Math.floor(Date.now() / 1000),
+  });
+
+  const hasSucceeded = succeeded.length > 0;
+  const hasFailed = failed.length > 0;
+
+  if (!hasSucceeded && hasFailed) {
+    await context.reply(`Scrobble failed on all services: ${failed.join(", ")}.`);
+    return;
+  }
+
   await context.react("🎉");
 
-  const albumSuffix = metadata.album ? ` [${metadata.album}]` : "";
-  await context.reply(`${metadata.artist} — ${metadata.title}${albumSuffix}`);
+  if (hasFailed) {
+    await context.reply(`Scrobbled, but ${failed.join(", ")} didn't go through.`);
+  }
 });
 
 export default composer;
