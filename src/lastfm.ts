@@ -182,6 +182,15 @@ export function getAuthUrl(config: LastfmConfig, token: string): string {
   return url.toString();
 }
 
+/** normalised loved track data from user.getLovedTracks */
+export interface LovedTrack {
+  artist: string;
+  track: string;
+  trackUrl: string;
+  /** human-readable date, null when the API omits it */
+  lovedAt: string | null;
+}
+
 /** normalised track data from user.getRecentTracks */
 export interface RecentTrack {
   artist: string;
@@ -192,6 +201,31 @@ export interface RecentTrack {
   isNowPlaying: boolean;
   /** human-readable timestamp, null when the track is currently playing */
   timestamp: string | null;
+}
+
+/** raw artist block inside a loved track entry — uses .name, not .#text */
+interface LastfmLovedTrackArtist {
+  name: string;
+}
+
+/** raw date block in a loved track entry */
+interface LastfmLovedTrackDate {
+  "#text": string;
+}
+
+/** raw entry from user.getLovedTracks */
+interface LastfmLovedTrackEntry {
+  name: string;
+  url: string;
+  artist: LastfmLovedTrackArtist;
+  date?: LastfmLovedTrackDate;
+}
+
+/** shape of a successful user.getLovedTracks response */
+interface LovedTracksResponse {
+  lovedtracks: {
+    track: LastfmLovedTrackEntry[];
+  };
 }
 
 /** raw image entry from the Last.fm track payload */
@@ -264,4 +298,43 @@ export async function getRecentTrack(
     isNowPlaying,
     timestamp: isNowPlaying ? null : (entry.date?.["#text"] ?? null),
   };
+}
+
+/**
+ * fetch the most recently loved tracks for a user
+ * via user.getLovedTracks — no signature required
+ */
+export async function getLovedTracks(
+  config: LastfmConfig,
+  username: string,
+  limit: number = 5
+): Promise<LovedTrack[]> {
+  const url = new URL(config.apiUrl);
+  url.searchParams.set("method", "user.getlovedtracks");
+  url.searchParams.set("user", username);
+  url.searchParams.set("api_key", config.apiKey);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("limit", String(limit));
+
+  const response = await fetch(url.toString());
+  const data: unknown = await response.json();
+
+  if (isLastfmError(data)) {
+    console.warn(`user.getlovedtracks failed — error ${data.error}: ${data.message}`);
+    return [];
+  }
+
+  const { lovedtracks } = data as LovedTracksResponse;
+  const tracks = lovedtracks.track;
+
+  if (!tracks.length) {
+    return [];
+  }
+
+  return tracks.map((entry) => ({
+    artist: entry.artist.name,
+    track: entry.name,
+    trackUrl: entry.url,
+    lovedAt: entry.date?.["#text"] ?? null,
+  }));
 }

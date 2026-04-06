@@ -215,6 +215,15 @@ export async function validateToken(
   return { valid: true, userName };
 }
 
+/** normalised loved track data from the feedback endpoint */
+export interface LovedTrack {
+  artist: string;
+  track: string;
+  trackUrl: string;
+  /** human-readable date derived from the unix timestamp */
+  lovedAt: string | null;
+}
+
 /** shape of the track_metadata object sent to the submit-listens endpoint */
 interface TrackMetadata {
   artist_name: string;
@@ -281,4 +290,88 @@ export async function submitListen(
     );
     throw new Error(`ListenBrainz submit-listens failed with status ${response.status}`);
   }
+}
+
+/** track_metadata block in a feedback entry — may be absent for some entries */
+interface FeedbackTrackMetadata {
+  artist_name: string;
+  track_name: string;
+}
+
+/** shape of a single entry in the get-feedback response */
+interface FeedbackEntry {
+  track_metadata?: FeedbackTrackMetadata;
+  /** unix timestamp (seconds) of when the track was loved */
+  created: number;
+}
+
+/** shape of the get-feedback API response */
+interface FeedbackResponse {
+  feedback: FeedbackEntry[];
+}
+
+/**
+ * narrow an unknown API response to the feedback shape
+ */
+function isFeedbackResponse(data: unknown): data is FeedbackResponse {
+  if (typeof data !== "object" || data === null) return false;
+  if (!("feedback" in data)) return false;
+  return Array.isArray((data as FeedbackResponse).feedback);
+}
+
+/**
+ * fetch a user's loved tracks from ListenBrainz feedback —
+ * entries without track_metadata are skipped
+ */
+export async function getLovedTracks(
+  userName: string,
+  limit: number = 5
+): Promise<LovedTrack[]> {
+  const url = new URL(
+    `/1/feedback/user/${userName}/get-feedback`,
+    BASE_URL
+  );
+  url.searchParams.set("score", "1");
+  url.searchParams.set("count", String(limit));
+
+  let response: Response;
+  try {
+    response = await fetch(url.toString());
+  } catch (networkError) {
+    console.warn(`getLovedTracks network error for user "${userName}": ${String(networkError)}`);
+    return [];
+  }
+
+  if (!response.ok) {
+    console.warn(
+      `getLovedTracks — ListenBrainz returned ${response.status} for user "${userName}"`
+    );
+    return [];
+  }
+
+  const data: unknown = await response.json();
+
+  if (!isFeedbackResponse(data)) {
+    console.warn(
+      `getLovedTracks — unexpected response shape for user "${userName}": ${JSON.stringify(data)}`
+    );
+    return [];
+  }
+
+  const result: LovedTrack[] = [];
+
+  for (const entry of data.feedback) {
+    if (!entry.track_metadata) {
+      /** skip entries where Last.fm track_metadata is absent */
+      continue;
+    }
+    result.push({
+      artist: entry.track_metadata.artist_name,
+      track: entry.track_metadata.track_name,
+      trackUrl: "",
+      lovedAt: formatListenTimestamp(entry.created),
+    });
+  }
+
+  return result;
 }

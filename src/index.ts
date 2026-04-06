@@ -4,6 +4,7 @@ import loginLibrefm from "./commands/login-librefm.js";
 import loginListenbrainz from "./commands/login-listenbrainz.js";
 import scrobble from "./commands/scrobble.js";
 import np from "./commands/np.js";
+import loved from "./commands/loved.js";
 
 const botToken = process.env.BOT_TOKEN;
 if (!botToken) {
@@ -23,6 +24,7 @@ bot.use(loginLibrefm);
 bot.use(loginListenbrainz);
 bot.use(scrobble);
 bot.use(np);
+bot.use(loved);
 
 const shutdown = () => {
   bot.stop();
