@@ -359,21 +359,6 @@ interface LastfmTopTrackEntry {
   artist: LastfmEntryArtist;
 }
 
-/** shape of a successful user.getTopArtists response */
-interface TopArtistsResponse {
-  topartists: { artist: LastfmTopArtistEntry[] };
-}
-
-/** shape of a successful user.getTopAlbums response */
-interface TopAlbumsResponse {
-  topalbums: { album: LastfmTopAlbumEntry[] };
-}
-
-/** shape of a successful user.getTopTracks response */
-interface TopTracksResponse {
-  toptracks: { track: LastfmTopTrackEntry[] };
-}
-
 /**
  * shared fetch + parse for all three user.getTop* methods —
  * each differs only in method name, response key, and entry shape

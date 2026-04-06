@@ -1,7 +1,4 @@
 import { Composer, Context, InlineKeyboard } from "grammy";
-import { and, eq } from "drizzle-orm";
-import { db } from "../db.js";
-import { users, serviceConnections } from "../schema.js";
 import { lastfmConfig } from "../config.js";
 import {
   getTopArtists,
@@ -10,6 +7,8 @@ import {
   TopItem,
   TopPeriod,
 } from "../lastfm.js";
+import { resolveLastfmConnection } from "../user-lookup.js";
+import { escapeHtml } from "../utils.js";
 
 const composer = new Composer<Context>();
 
@@ -31,16 +30,6 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   albums: "albums",
   tracks: "tracks",
 };
-
-/**
- * escape characters that have special meaning in Telegram HTML parse mode
- */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 
 /**
  * build the entity type selection keyboard shown on /toplists
@@ -102,37 +91,6 @@ function formatTopList(
 }
 
 /**
- * look up the Last.fm username for a given Telegram user id —
- * returns null if no Last.fm connection exists
- */
-async function getLastfmUsername(telegramId: bigint): Promise<string | null> {
-  const userRow = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.telegramId, telegramId))
-    .limit(1);
-
-  const user = userRow[0];
-  if (!user) return null;
-
-  const connectionRow = await db
-    .select({ serviceUsername: serviceConnections.serviceUsername })
-    .from(serviceConnections)
-    .where(
-      and(
-        eq(serviceConnections.userId, user.id),
-        eq(serviceConnections.serviceType, "lastfm")
-      )
-    )
-    .limit(1);
-
-  const connection = connectionRow[0];
-  if (!connection) return null;
-
-  return connection.serviceUsername;
-}
-
-/**
  * fetch the top list for the given entity type + period combo
  */
 async function fetchTopList(
@@ -189,10 +147,9 @@ composer.callbackQuery(
       return;
     }
 
-    const telegramId = BigInt(from.id);
-    const username = await getLastfmUsername(telegramId);
+    const connection = await resolveLastfmConnection(BigInt(from.id));
 
-    if (!username) {
+    if (!connection) {
       await context.editMessageText(
         "Top lists require a Last.fm connection for now."
       );
@@ -200,7 +157,7 @@ composer.callbackQuery(
       return;
     }
 
-    const items = await fetchTopList(username, entityType, period);
+    const items = await fetchTopList(connection.serviceUsername, entityType, period);
     const message = formatTopList(items, entityType, period);
 
     await context.editMessageText(message, { parse_mode: "HTML" });

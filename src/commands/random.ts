@@ -1,10 +1,9 @@
 import { Composer, Context } from "grammy";
-import { and, eq } from "drizzle-orm";
-import { db } from "../db.js";
-import { users, serviceConnections } from "../schema.js";
 import { lastfmConfig } from "../config.js";
 import { getTopArtists, getTopAlbums, getTopTracks } from "../lastfm.js";
 import type { TopItem } from "../lastfm.js";
+import { resolveLastfmConnection } from "../user-lookup.js";
+import { escapeHtml } from "../utils.js";
 
 const composer = new Composer<Context>();
 
@@ -12,16 +11,6 @@ const composer = new Composer<Context>();
 type EntityType = "artists" | "albums" | "tracks";
 
 const entityTypes: EntityType[] = ["artists", "albums", "tracks"];
-
-/**
- * escape characters that have special meaning in Telegram HTML parse mode
- */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 
 /**
  * format a random TopItem pick into the HTML reply string
@@ -63,47 +52,15 @@ composer.command("random", async (context) => {
     return;
   }
 
-  const telegramId = BigInt(from.id);
-
-  const userRow = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.telegramId, telegramId))
-    .limit(1);
-
-  const user = userRow[0];
-  if (!user) {
+  const connection = await resolveLastfmConnection(BigInt(from.id));
+  if (!connection) {
     await context.reply("Random picks require a Last.fm connection for now.");
-    return;
-  }
-
-  const lastfmRow = await db
-    .select({ serviceUsername: serviceConnections.serviceUsername })
-    .from(serviceConnections)
-    .where(
-      and(
-        eq(serviceConnections.userId, user.id),
-        eq(serviceConnections.serviceType, "lastfm")
-      )
-    )
-    .limit(1);
-
-  const lastfmConnection = lastfmRow[0];
-  if (!lastfmConnection) {
-    await context.reply("Random picks require a Last.fm connection for now.");
-    return;
-  }
-
-  const serviceUsername = lastfmConnection.serviceUsername;
-  if (!serviceUsername) {
-    console.warn(`/random — Last.fm connection for userId=${user.id} has no serviceUsername`);
-    await context.reply("Something went wrong with your Last.fm connection. Try reconnecting.");
     return;
   }
 
   const entityType = entityTypes[Math.floor(Math.random() * entityTypes.length)];
 
-  const items = await fetchItems(entityType, serviceUsername);
+  const items = await fetchItems(entityType, connection.serviceUsername);
 
   if (!items.length) {
     await context.reply("Not enough history yet. Scrobble more!");
