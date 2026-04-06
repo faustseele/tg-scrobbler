@@ -6,6 +6,7 @@ import scrobble from "./commands/scrobble.js";
 import np from "./commands/np.js";
 import loved from "./commands/loved.js";
 import toplists from "./commands/toplists.js";
+import random from "./commands/random.js";
 
 const botToken = process.env.BOT_TOKEN;
 if (!botToken) {
@@ -27,6 +28,7 @@ bot.use(scrobble);
 bot.use(np);
 bot.use(loved);
 bot.use(toplists);
+bot.use(random);
 
 const shutdown = () => {
   bot.stop();
