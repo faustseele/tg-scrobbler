@@ -11,19 +11,19 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@neondatabase/serverless": "latest",
-    "drizzle-orm": "latest",
-    "grammy": "latest",
-    "node-cron": "latest"
+    "@neondatabase/serverless": "^1.0.2",
+    "drizzle-orm": "^0.45.2",
+    "grammy": "^1.42.0",
+    "node-cron": "^4.2.1"
   },
   "devDependencies": {
-    "@eslint/js": "latest",
-    "@types/node": "latest",
-    "@types/node-cron": "latest",
-    "drizzle-kit": "latest",
-    "eslint": "latest",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.5.2",
+    "@types/node-cron": "^3.0.11",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^10.2.0",
     "tsx": "^4.21.0",
-    "typescript": "latest",
-    "typescript-eslint": "latest"
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.0"
   }
 }
