@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
 import { db } from "./db.js";
 import { serviceConnections, scrobbleCache } from "./schema.js";
-import { scrobbleTrack, LastfmConfig } from "./lastfm.js";
+import { scrobbleTrack } from "./lastfm.js";
 import { submitListen } from "./listenbrainz.js";
+import { lastfmConfig, librefmConfig } from "./config.js";
 
 export interface ScrobbleParams {
   userId: number;
@@ -10,40 +11,6 @@ export interface ScrobbleParams {
   track: string;
   album: string | null;
   timestamp: number;
-}
-
-const lastfmApiKey = process.env.LASTFM_API_KEY;
-const lastfmSharedSecret = process.env.LASTFM_SHARED_SECRET;
-
-if (!lastfmApiKey) {
-  throw new Error("LASTFM_API_KEY is not set");
-}
-
-if (!lastfmSharedSecret) {
-  throw new Error("LASTFM_SHARED_SECRET is not set");
-}
-
-const lastfmConfig: LastfmConfig = {
-  apiKey: lastfmApiKey,
-  sharedSecret: lastfmSharedSecret,
-  apiUrl: "https://ws.audioscrobbler.com/2.0/",
-  authUrl: "https://www.last.fm/api/auth/",
-};
-
-const librefmApiKey = process.env.LIBREFM_API_KEY;
-const librefmSharedSecret = process.env.LIBREFM_SHARED_SECRET;
-
-let librefmConfig: LastfmConfig | null = null;
-
-if (!librefmApiKey || !librefmSharedSecret) {
-  console.info("LIBREFM_API_KEY or LIBREFM_SHARED_SECRET not set — Libre.fm scrobbling will be skipped");
-} else {
-  librefmConfig = {
-    apiKey: librefmApiKey,
-    sharedSecret: librefmSharedSecret,
-    apiUrl: "https://libre.fm/2.0/",
-    authUrl: "https://libre.fm/api/auth/",
-  };
 }
 
 /** result shape for a single service submission attempt */

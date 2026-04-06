@@ -70,6 +70,13 @@ composer.on("message:audio", async (context) => {
   const hasSucceeded = succeeded.length > 0;
   const hasFailed = failed.length > 0;
 
+  if (!hasSucceeded && !hasFailed) {
+    await context.reply(
+      "No services connected. Use /login_lastfm, /login_librefm, or /login_listenbrainz first."
+    );
+    return;
+  }
+
   if (!hasSucceeded && hasFailed) {
     await context.reply(`Scrobble failed on all services: ${failed.join(", ")}.`);
     return;
