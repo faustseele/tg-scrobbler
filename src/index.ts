@@ -1,4 +1,5 @@
 import { Bot } from "grammy";
+import loginLastfm from "./commands/login-lastfm.js";
 
 const botToken = process.env.BOT_TOKEN;
 if (!botToken) {
@@ -12,6 +13,8 @@ bot.command("start", (context) => {
     "Your listening history, in your pocket. I track what you play and scrobble it to Last.fm — no fuss.\n\nType /help to see what I can do."
   );
 });
+
+bot.use(loginLastfm);
 
 const shutdown = () => {
   bot.stop();
