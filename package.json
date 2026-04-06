@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsc",
     "start": "node --env-file=.env dist/index.js",
     "lint": "eslint src/",
@@ -21,6 +22,7 @@
     "@types/node-cron": "latest",
     "drizzle-kit": "latest",
     "eslint": "latest",
+    "tsx": "^4.21.0",
     "typescript": "latest",
     "typescript-eslint": "latest"
   }
