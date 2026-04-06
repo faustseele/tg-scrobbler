@@ -1,5 +1,6 @@
 import { Bot } from "grammy";
 import loginLastfm from "./commands/login-lastfm.js";
+import loginLibrefm from "./commands/login-librefm.js";
 
 const botToken = process.env.BOT_TOKEN;
 if (!botToken) {
@@ -15,6 +16,7 @@ bot.command("start", (context) => {
 });
 
 bot.use(loginLastfm);
+bot.use(loginLibrefm);
 
 const shutdown = () => {
   bot.stop();
