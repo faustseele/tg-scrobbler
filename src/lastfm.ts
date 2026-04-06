@@ -332,6 +332,25 @@ interface LastfmTopAlbumEntry {
   artist: LastfmEntryArtist;
 }
 
+/** raw album entry including image data — used when art URLs are needed */
+interface LastfmTopAlbumEntryWithImage extends LastfmTopAlbumEntry {
+  image: LastfmImage[];
+}
+
+/** shape of a successful user.getTopAlbums response with image data */
+interface TopAlbumsWithImagesResponse {
+  topalbums: { album: LastfmTopAlbumEntryWithImage[] };
+}
+
+/** album entry including the extralarge art URL */
+export interface AlbumWithArt {
+  name: string;
+  artist: string;
+  playCount: number;
+  /** extralarge album art URL, null when Last.fm has no art for this album */
+  imageUrl: string | null;
+}
+
 /** raw track entry from user.getTopTracks */
 interface LastfmTopTrackEntry {
   name: string;
@@ -451,6 +470,54 @@ export async function getTopAlbums(
       artist: entry.artist.name,
     })
   );
+}
+
+/**
+ * fetch the user's top albums with album art URLs for a given period
+ * via user.getTopAlbums — no signature required.
+ * unlike getTopAlbums, this preserves the image array so callers can
+ * retrieve the extralarge art URL for each album
+ */
+export async function getTopAlbumsWithArt(
+  config: LastfmConfig,
+  username: string,
+  period: TopPeriod = "overall",
+  limit: number = 10
+): Promise<AlbumWithArt[]> {
+  const url = new URL(config.apiUrl);
+  url.searchParams.set("method", "user.gettopalbums");
+  url.searchParams.set("user", username);
+  url.searchParams.set("api_key", config.apiKey);
+  url.searchParams.set("period", period);
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("format", "json");
+
+  const response = await fetch(url.toString());
+  const data: unknown = await response.json();
+
+  if (isLastfmError(data)) {
+    console.warn(`user.gettopalbums failed — error ${data.error}: ${data.message}`);
+    return [];
+  }
+
+  const { topalbums } = data as TopAlbumsWithImagesResponse;
+  const albums = topalbums.album;
+
+  if (!Array.isArray(albums)) {
+    return [];
+  }
+
+  return albums.map((entry) => {
+    const extralargeImage = entry.image.find((image) => image.size === "extralarge");
+    /** Last.fm returns an empty string when no art exists — treat that as null */
+    const imageUrl = extralargeImage?.["#text"] || null;
+    return {
+      name: entry.name,
+      artist: entry.artist.name,
+      playCount: Number(entry.playcount),
+      imageUrl,
+    };
+  });
 }
 
 /**

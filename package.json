@@ -15,7 +15,8 @@
     "drizzle-orm": "^0.45.2",
     "grammy": "^1.42.0",
     "music-metadata": "^11.12.3",
-    "node-cron": "^4.2.1"
+    "node-cron": "^4.2.1",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
