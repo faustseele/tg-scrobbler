@@ -300,6 +300,186 @@ export async function getRecentTrack(
   };
 }
 
+/** period options accepted by the user.getTop* endpoints */
+export type TopPeriod = "7day" | "1month" | "3month" | "12month" | "overall";
+
+/** normalised entry returned by any of the top-list endpoints */
+export interface TopItem {
+  name: string;
+  playCount: number;
+  url: string;
+  /** artist name — for albums/tracks. null for top artists */
+  artist: string | null;
+}
+
+/** raw artist entry from user.getTopArtists */
+interface LastfmTopArtistEntry {
+  name: string;
+  playcount: string;
+  url: string;
+}
+
+/** raw artist sub-object inside album/track entries */
+interface LastfmEntryArtist {
+  name: string;
+}
+
+/** raw album entry from user.getTopAlbums */
+interface LastfmTopAlbumEntry {
+  name: string;
+  playcount: string;
+  url: string;
+  artist: LastfmEntryArtist;
+}
+
+/** raw track entry from user.getTopTracks */
+interface LastfmTopTrackEntry {
+  name: string;
+  playcount: string;
+  url: string;
+  artist: LastfmEntryArtist;
+}
+
+/** shape of a successful user.getTopArtists response */
+interface TopArtistsResponse {
+  topartists: { artist: LastfmTopArtistEntry[] };
+}
+
+/** shape of a successful user.getTopAlbums response */
+interface TopAlbumsResponse {
+  topalbums: { album: LastfmTopAlbumEntry[] };
+}
+
+/** shape of a successful user.getTopTracks response */
+interface TopTracksResponse {
+  toptracks: { track: LastfmTopTrackEntry[] };
+}
+
+/**
+ * shared fetch + parse for all three user.getTop* methods —
+ * each differs only in method name, response key, and entry shape
+ */
+async function fetchTopList<TEntry>(
+  config: LastfmConfig,
+  method: string,
+  responseKey: string,
+  listKey: string,
+  username: string,
+  period: TopPeriod,
+  limit: number,
+  toTopItem: (entry: TEntry) => TopItem
+): Promise<TopItem[]> {
+  const url = new URL(config.apiUrl);
+  url.searchParams.set("method", method);
+  url.searchParams.set("user", username);
+  url.searchParams.set("api_key", config.apiKey);
+  url.searchParams.set("period", period);
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("format", "json");
+
+  const response = await fetch(url.toString());
+  const data: unknown = await response.json();
+
+  if (isLastfmError(data)) {
+    console.warn(`${method} failed — error ${data.error}: ${data.message}`);
+    return [];
+  }
+
+  const wrapper = (data as Record<string, unknown>)[responseKey];
+  if (typeof wrapper !== "object" || wrapper === null) {
+    console.warn(`${method} — unexpected response shape`);
+    return [];
+  }
+
+  const entries = (wrapper as Record<string, unknown>)[listKey];
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+
+  return (entries as TEntry[]).map(toTopItem);
+}
+
+/**
+ * fetch the user's top artists for a given period via user.getTopArtists —
+ * no signature required
+ */
+export async function getTopArtists(
+  config: LastfmConfig,
+  username: string,
+  period: TopPeriod = "overall",
+  limit: number = 10
+): Promise<TopItem[]> {
+  return fetchTopList<LastfmTopArtistEntry>(
+    config,
+    "user.gettopartists",
+    "topartists",
+    "artist",
+    username,
+    period,
+    limit,
+    (entry) => ({
+      name: entry.name,
+      playCount: Number(entry.playcount),
+      url: entry.url,
+      artist: null,
+    })
+  );
+}
+
+/**
+ * fetch the user's top albums for a given period via user.getTopAlbums —
+ * no signature required
+ */
+export async function getTopAlbums(
+  config: LastfmConfig,
+  username: string,
+  period: TopPeriod = "overall",
+  limit: number = 10
+): Promise<TopItem[]> {
+  return fetchTopList<LastfmTopAlbumEntry>(
+    config,
+    "user.gettopalbums",
+    "topalbums",
+    "album",
+    username,
+    period,
+    limit,
+    (entry) => ({
+      name: entry.name,
+      playCount: Number(entry.playcount),
+      url: entry.url,
+      artist: entry.artist.name,
+    })
+  );
+}
+
+/**
+ * fetch the user's top tracks for a given period via user.getTopTracks —
+ * no signature required
+ */
+export async function getTopTracks(
+  config: LastfmConfig,
+  username: string,
+  period: TopPeriod = "overall",
+  limit: number = 10
+): Promise<TopItem[]> {
+  return fetchTopList<LastfmTopTrackEntry>(
+    config,
+    "user.gettoptracks",
+    "toptracks",
+    "track",
+    username,
+    period,
+    limit,
+    (entry) => ({
+      name: entry.name,
+      playCount: Number(entry.playcount),
+      url: entry.url,
+      artist: entry.artist.name,
+    })
+  );
+}
+
 /**
  * fetch the most recently loved tracks for a user
  * via user.getLovedTracks — no signature required
