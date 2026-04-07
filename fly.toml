@@ -12,6 +12,18 @@ primary_region = "ams"
 # no [[services]] — worker process, not an HTTP server
 # no [http_service] — long polling, no public port
 
+[checks]
+  [checks.alive]
+    type = "machine"
+    port = 0
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[restart]
+  policy = "always"
+  max_retries = 5
+
 [[vm]]
   size = "shared-cpu-1x"
   memory = "256mb"

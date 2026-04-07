@@ -42,7 +42,14 @@ const shutdown = () => {
 process.once("SIGINT", shutdown);
 process.once("SIGTERM", shutdown);
 
+process.on("unhandledRejection", (reason) => {
+  console.error("unhandled rejection:", reason);
+});
+
 startWeeklyDigestCron(bot);
 startDiscoveryDispatchCron(bot);
 startSocialNotificationsCron(bot);
+
+console.info("tg-scrobbler starting...");
 bot.start();
+console.info("tg-scrobbler is running");
