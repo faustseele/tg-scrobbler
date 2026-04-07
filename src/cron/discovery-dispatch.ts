@@ -6,6 +6,7 @@ import { fetchLastfmConnectedUsers, LastfmConnectedUser } from "../user-lookup.j
 import { getRecommendations } from "../recommendations.js";
 import { downloadTrack } from "../yt-dlp.js";
 import { escapeHtml } from "../utils.js";
+import { t } from "../i18n/index.js";
 
 /**
  * attempt to download and send the first successful recommendation for a user.
@@ -33,7 +34,11 @@ async function dispatchForUser(bot: Bot, user: LastfmConnectedUser): Promise<voi
 
     const trackKey = `${artist.toLowerCase()} - ${track.toLowerCase()}`;
     const filename = `${artist} - ${track}.m4a`;
-    const caption = `\u{1F3B5} Discovery: <b>${escapeHtml(artist)}</b> \u2014 ${escapeHtml(track)}`;
+    const lang = user.language ?? "en";
+    const caption = t("discovery.caption", lang, {
+      artist: escapeHtml(artist),
+      track: escapeHtml(track),
+    });
 
     await bot.api.sendAudio(
       String(user.telegramId),

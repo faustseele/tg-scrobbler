@@ -1,4 +1,5 @@
 import { Composer, Context } from "grammy";
+import { t } from "../i18n/index.js";
 import { validateToken } from "../listenbrainz.js";
 import { upsertUser, upsertServiceConnection } from "./scrobbler-auth.js";
 
@@ -20,7 +21,6 @@ function clearPending(telegramId: number): void {
   pendingTokenInput.delete(telegramId);
 }
 
-const SETTINGS_URL = "https://listenbrainz.org/settings/";
 const SERVICE_TYPE = "listenbrainz";
 
 const composer = new Composer<Context>();
@@ -36,10 +36,11 @@ composer.command("login_listenbrainz", async (context) => {
     return;
   }
 
+  const lang = context.from?.language_code ?? "en";
   addPending(from.id);
 
   await context.reply(
-    `Paste your ListenBrainz user token and I'll take it from there.\n\nFind it at <a href="${SETTINGS_URL}">listenbrainz.org/settings</a>`,
+    t("listenbrainz.paste_token", lang),
     { parse_mode: "HTML" }
   );
 });
@@ -57,6 +58,7 @@ composer.on("message:text", async (context) => {
 
   clearPending(from.id);
 
+  const lang = context.from?.language_code ?? "en";
   const token = context.message.text.trim();
 
   let validationResult: { valid: boolean; userName: string | null };
@@ -65,7 +67,7 @@ composer.on("message:text", async (context) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`validateToken failed for telegramId=${from.id}: ${message}`);
-    await context.reply("Couldn't reach ListenBrainz right now. Try again in a moment.");
+    await context.reply(t("listenbrainz.unreachable", lang));
     /** re-add so the user can retry without re-issuing the command */
     addPending(from.id);
     return;
@@ -73,7 +75,7 @@ composer.on("message:text", async (context) => {
 
   if (!validationResult.valid) {
     await context.reply(
-      "That token doesn't look right. Check your ListenBrainz settings and try again.",
+      t("listenbrainz.invalid_token", lang),
       { parse_mode: "HTML" }
     );
     return;
@@ -82,7 +84,7 @@ composer.on("message:text", async (context) => {
   const userName = validationResult.userName;
   if (!userName) {
     console.warn(`validateToken returned valid but no userName for telegramId=${from.id}`);
-    await context.reply("Token validated but ListenBrainz didn't return a username. Try again.");
+    await context.reply(t("listenbrainz.no_username", lang));
     return;
   }
 
@@ -90,7 +92,7 @@ composer.on("message:text", async (context) => {
   await upsertServiceConnection(userId, SERVICE_TYPE, token, userName);
 
   await context.reply(
-    `Linked as <b>${userName}</b> on ListenBrainz. Ready to scrobble.`,
+    t("listenbrainz.connected", lang, { name: userName }),
     { parse_mode: "HTML" }
   );
 });

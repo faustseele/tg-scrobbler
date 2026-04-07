@@ -4,6 +4,7 @@ import { getLovedTracks as getLastfmLovedTracks } from "../lastfm.js";
 import { getLovedTracks as getListenbrainzLovedTracks } from "../listenbrainz.js";
 import { resolveStatsConnection } from "../user-lookup.js";
 import { escapeHtml } from "../utils.js";
+import { t } from "../i18n/index.js";
 
 const composer = new Composer<Context>();
 
@@ -38,12 +39,11 @@ composer.command("loved", async (context) => {
     return;
   }
 
+  const lang = from.language_code ?? "en";
   const connection = await resolveStatsConnection(BigInt(from.id));
 
   if (!connection) {
-    await context.reply(
-      "Connect a service first with /login_lastfm, /login_librefm, or /login_listenbrainz"
-    );
+    await context.reply(t("common.connect_first", lang));
     return;
   }
 
@@ -51,12 +51,12 @@ composer.command("loved", async (context) => {
     const tracks = await getLastfmLovedTracks(lastfmConfig, connection.serviceUsername);
 
     if (!tracks.length) {
-      await context.reply("No loved tracks yet.");
+      await context.reply(t("loved.empty", lang));
       return;
     }
 
     const lines = tracks.map((track, index) => formatLovedTrackItem(index + 1, track));
-    await context.reply(`\u{1F497} Loved tracks:\n${lines.join("\n")}`, { parse_mode: "HTML" });
+    await context.reply(`${t("loved.header", lang)}\n${lines.join("\n")}`, { parse_mode: "HTML" });
     return;
   }
 
@@ -64,12 +64,12 @@ composer.command("loved", async (context) => {
     const tracks = await getListenbrainzLovedTracks(connection.serviceUsername);
 
     if (!tracks.length) {
-      await context.reply("No loved tracks yet.");
+      await context.reply(t("loved.empty", lang));
       return;
     }
 
     const lines = tracks.map((track, index) => formatLovedTrackItem(index + 1, track));
-    await context.reply(`\u{1F497} Loved tracks:\n${lines.join("\n")}`, { parse_mode: "HTML" });
+    await context.reply(`${t("loved.header", lang)}\n${lines.join("\n")}`, { parse_mode: "HTML" });
     return;
   }
 });

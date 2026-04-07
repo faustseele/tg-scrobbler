@@ -3,6 +3,7 @@ import { lastfmConfig } from "../config.js";
 import { getTopAlbumsWithArt } from "../lastfm.js";
 import { createCollageImage } from "../collage.js";
 import { resolveLastfmConnection } from "../user-lookup.js";
+import { t } from "../i18n/index.js";
 
 const composer = new Composer<Context>();
 
@@ -17,19 +18,20 @@ composer.command("collage", async (context) => {
     return;
   }
 
+  const lang = from.language_code ?? "en";
   const connection = await resolveLastfmConnection(BigInt(from.id));
   if (!connection) {
-    await context.reply("Collage requires a Last.fm connection for now.");
+    await context.reply(t("common.no_lastfm", lang));
     return;
   }
 
-  const generatingMessage = await context.reply("Generating collage...");
+  const generatingMessage = await context.reply(t("collage.generating", lang));
 
   const albums = await getTopAlbumsWithArt(lastfmConfig, connection.serviceUsername, "3month", 9);
 
   if (!albums.length) {
     await context.api.deleteMessage(generatingMessage.chat.id, generatingMessage.message_id);
-    await context.reply("Not enough listening history for a collage.");
+    await context.reply(t("collage.no_history", lang));
     return;
   }
 
@@ -37,7 +39,7 @@ composer.command("collage", async (context) => {
   const collageBuffer = await createCollageImage(imageUrls);
 
   await context.replyWithPhoto(new InputFile(collageBuffer, "collage.png"), {
-    caption: `${connection.serviceUsername}'s 3 months album collage`,
+    caption: t("collage.caption", lang, { username: connection.serviceUsername, period: "3 months" }),
   });
 
   await context.api.deleteMessage(generatingMessage.chat.id, generatingMessage.message_id);

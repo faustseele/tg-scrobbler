@@ -4,6 +4,7 @@ import { getTopArtists, getTopAlbums, getTopTracks } from "../lastfm.js";
 import type { TopItem } from "../lastfm.js";
 import { resolveLastfmConnection } from "../user-lookup.js";
 import { escapeHtml } from "../utils.js";
+import { t } from "../i18n/index.js";
 
 const composer = new Composer<Context>();
 
@@ -52,9 +53,10 @@ composer.command("random", async (context) => {
     return;
   }
 
+  const lang = from.language_code ?? "en";
   const connection = await resolveLastfmConnection(BigInt(from.id));
   if (!connection) {
-    await context.reply("Random picks require a Last.fm connection for now.");
+    await context.reply(t("common.no_lastfm", lang));
     return;
   }
 
@@ -63,7 +65,7 @@ composer.command("random", async (context) => {
   const items = await fetchItems(entityType, connection.serviceUsername);
 
   if (!items.length) {
-    await context.reply("Not enough history yet. Scrobble more!");
+    await context.reply(t("random.no_history", lang));
     return;
   }
 

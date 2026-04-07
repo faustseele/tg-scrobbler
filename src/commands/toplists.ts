@@ -9,6 +9,7 @@ import {
 } from "../lastfm.js";
 import { resolveLastfmConnection } from "../user-lookup.js";
 import { escapeHtml } from "../utils.js";
+import { t } from "../i18n/index.js";
 
 const composer = new Composer<Context>();
 
@@ -76,13 +77,14 @@ function formatTopItem(item: TopItem, index: number, entityType: EntityType): st
 function formatTopList(
   items: TopItem[],
   entityType: EntityType,
-  period: TopPeriod
+  period: TopPeriod,
+  lang: string
 ): string {
   const entityLabel = ENTITY_LABELS[entityType];
   const periodLabel = PERIOD_LABELS[period];
 
   if (!items.length) {
-    return `No data for this period.`;
+    return t("toplists.no_data", lang);
   }
 
   const header = `\u{1F3C6} Top ${entityLabel} (${periodLabel}):`;
@@ -111,7 +113,8 @@ async function fetchTopList(
  * /toplists — opens the entity type selection keyboard
  */
 composer.command("toplists", async (context) => {
-  await context.reply("What do you want to see?", {
+  const lang = context.from?.language_code ?? "en";
+  await context.reply(t("toplists.choose_type", lang), {
     reply_markup: buildEntityKeyboard(),
   });
 });
@@ -122,8 +125,9 @@ composer.command("toplists", async (context) => {
 composer.callbackQuery(/^toplists:(artists|albums|tracks)$/, async (context) => {
   const match = context.match;
   const entityType = match[1] as EntityType;
+  const lang = context.from?.language_code ?? "en";
 
-  await context.editMessageText("Pick a period:", {
+  await context.editMessageText(t("toplists.choose_period", lang), {
     reply_markup: buildPeriodKeyboard(entityType),
   });
 
@@ -147,18 +151,17 @@ composer.callbackQuery(
       return;
     }
 
+    const lang = from.language_code ?? "en";
     const connection = await resolveLastfmConnection(BigInt(from.id));
 
     if (!connection) {
-      await context.editMessageText(
-        "Top lists require a Last.fm connection for now."
-      );
+      await context.editMessageText(t("common.no_lastfm", lang));
       await context.answerCallbackQuery();
       return;
     }
 
     const items = await fetchTopList(connection.serviceUsername, entityType, period);
-    const message = formatTopList(items, entityType, period);
+    const message = formatTopList(items, entityType, period, lang);
 
     await context.editMessageText(message, { parse_mode: "HTML" });
     await context.answerCallbackQuery();

@@ -1,4 +1,5 @@
 import { Composer, Context } from "grammy";
+import { t } from "../i18n/index.js";
 import { librefmConfig } from "../config.js";
 import { createScrobblerAuthComposer } from "./scrobbler-auth.js";
 
@@ -7,7 +8,8 @@ let composer: Composer<Context>;
 if (!librefmConfig) {
   composer = new Composer<Context>();
   composer.command("login_librefm", async (context) => {
-    await context.reply("Libre.fm is not configured.");
+    const lang = context.from?.language_code ?? "en";
+    await context.reply(t("auth.librefm_unconfigured", lang));
   });
 } else {
   composer = createScrobblerAuthComposer({

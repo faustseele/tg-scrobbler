@@ -1,4 +1,5 @@
 import { Composer, Context } from "grammy";
+import { t } from "../i18n/index.js";
 import { db } from "../db.js";
 import { users, serviceConnections } from "../schema.js";
 import { getToken, getSession, getAuthUrl, LastfmConfig } from "../lastfm.js";
@@ -97,13 +98,15 @@ export function createScrobblerAuthComposer(
       return;
     }
 
+    const lang = context.from?.language_code ?? "en";
+
     let token: string;
     try {
       token = await getToken(config);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`getToken failed for telegramId=${from.id} service=${serviceType}: ${message}`);
-      await context.reply(`Couldn't reach ${serviceName} right now. Try again in a moment.`);
+      await context.reply(t("common.service_error", lang, { service: serviceName }));
       return;
     }
 
@@ -112,12 +115,12 @@ export function createScrobblerAuthComposer(
     const authUrl = getAuthUrl(config, token);
 
     await context.reply(
-      `Authorise me on ${serviceName}, then hit Done.\n\n<a href="${authUrl}">Open ${serviceName} auth page</a>`,
+      t("auth.authorize_prompt", lang, { service: serviceName, url: authUrl }),
       {
         parse_mode: "HTML",
         reply_markup: {
           inline_keyboard: [
-            [{ text: "Done", callback_data: `${callbackPrefix}:${token}` }],
+            [{ text: t("auth.done_button", lang), callback_data: `${callbackPrefix}:${token}` }],
           ],
         },
       }
@@ -131,6 +134,7 @@ export function createScrobblerAuthComposer(
   composer.callbackQuery(callbackPattern, async (context) => {
     const from = context.from;
     const token = context.match[1];
+    const lang = context.from?.language_code ?? "en";
 
     await context.answerCallbackQuery();
 
@@ -140,9 +144,7 @@ export function createScrobblerAuthComposer(
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`getSession failed for telegramId=${from.id} service=${serviceType} token=${token}: ${message}`);
-      await context.editMessageText(
-        `Auth failed — looks like you didn't approve the request, or it expired. Run /${commandName} again.`
-      );
+      await context.editMessageText(t("auth.failed", lang, { command: commandName }));
       return;
     }
 
@@ -150,7 +152,7 @@ export function createScrobblerAuthComposer(
     await upsertServiceConnection(userId, serviceType, session.key, session.name);
 
     await context.editMessageText(
-      `Connected as <b>${session.name}</b> on ${serviceName}.`,
+      t("auth.connected", lang, { name: session.name, service: serviceName }),
       { parse_mode: "HTML" }
     );
   });

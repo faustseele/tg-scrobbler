@@ -4,6 +4,7 @@ import { getRecentTrack as getLastfmRecentTrack } from "../lastfm.js";
 import { getRecentTrack as getListenbrainzRecentTrack } from "../listenbrainz.js";
 import { resolveStatsConnection } from "../user-lookup.js";
 import { escapeHtml } from "../utils.js";
+import { t } from "../i18n/index.js";
 
 const composer = new Composer<Context>();
 
@@ -43,12 +44,11 @@ composer.command("np", async (context) => {
     return;
   }
 
+  const lang = from.language_code ?? "en";
   const connection = await resolveStatsConnection(BigInt(from.id));
 
   if (!connection) {
-    await context.reply(
-      "Connect a service first with /login_lastfm, /login_librefm, or /login_listenbrainz"
-    );
+    await context.reply(t("common.connect_first", lang));
     return;
   }
 
@@ -58,7 +58,7 @@ composer.command("np", async (context) => {
     const recentTrack = await getLastfmRecentTrack(lastfmConfig, serviceUsername);
 
     if (!recentTrack) {
-      await context.reply("Nothing playing right now.");
+      await context.reply(t("np.nothing_playing", lang));
       return;
     }
 
@@ -70,7 +70,7 @@ composer.command("np", async (context) => {
     const recentTrack = await getListenbrainzRecentTrack(serviceUsername);
 
     if (!recentTrack) {
-      await context.reply("Nothing playing right now.");
+      await context.reply(t("np.nothing_playing", lang));
       return;
     }
 
