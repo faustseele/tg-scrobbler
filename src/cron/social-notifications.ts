@@ -1,47 +1,21 @@
 import cron from "node-cron";
 import { Bot } from "grammy";
-import { eq, and, isNotNull } from "drizzle-orm";
-import { db } from "../db.js";
-import { users, serviceConnections } from "../schema.js";
 import { getShouts } from "../lastfm.js";
 import { lastfmConfig } from "../config.js";
 import { escapeHtml } from "../utils.js";
-
-/** user row returned by the Last.fm-connected users query */
-interface LastfmConnectedUser {
-  userId: number;
-  telegramId: bigint;
-  serviceUsername: string;
-}
+import { fetchLastfmConnectedUsers, LastfmConnectedUser } from "../user-lookup.js";
 
 /**
- * in-memory map from userId -> date string of the newest seen shout.
+ * in-memory map from userId -> unix timestamp (ms) of the newest seen shout.
  * resets on restart, so the first poll after restart silently catches up
  * without flooding the user with old shouts.
  */
-const lastSeenShoutDate = new Map<number, string>();
+const lastSeenShoutTimestamp = new Map<number, number>();
 
-/**
- * fetch all users who have an active Last.fm connection with a known username
- */
-async function fetchLastfmConnectedUsers(): Promise<LastfmConnectedUser[]> {
-  const rows = await db
-    .select({
-      userId: users.id,
-      telegramId: users.telegramId,
-      serviceUsername: serviceConnections.serviceUsername,
-    })
-    .from(users)
-    .innerJoin(serviceConnections, eq(serviceConnections.userId, users.id))
-    .where(
-      and(
-        eq(serviceConnections.serviceType, "lastfm"),
-        isNotNull(serviceConnections.serviceUsername)
-      )
-    );
-
-  return rows
-    .filter((row): row is LastfmConnectedUser => row.serviceUsername !== null);
+/** parse a Last.fm date string to unix ms — returns 0 if unparseable */
+function parseShoutDate(dateString: string): number {
+  const parsed = Date.parse(dateString);
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 /**
@@ -68,17 +42,17 @@ export function startSocialNotificationsCron(bot: Bot): void {
           const shouts = await getShouts(lastfmConfig, user.serviceUsername, 5);
           if (!shouts.length) continue;
 
-          const newestShoutDate = shouts[0].date;
-          const previouslySeen = lastSeenShoutDate.get(user.userId);
+          const newestTimestamp = parseShoutDate(shouts[0].date);
+          const previouslySeen = lastSeenShoutTimestamp.get(user.userId);
 
-          if (!previouslySeen) {
+          if (previouslySeen === undefined) {
             /** first poll — set baseline without sending to avoid flooding */
-            lastSeenShoutDate.set(user.userId, newestShoutDate);
+            lastSeenShoutTimestamp.set(user.userId, newestTimestamp);
             continue;
           }
 
           const newShouts = shouts.filter(
-            (shout) => shout.date > previouslySeen
+            (shout) => parseShoutDate(shout.date) > previouslySeen
           );
 
           for (const shout of newShouts) {
@@ -89,7 +63,7 @@ export function startSocialNotificationsCron(bot: Bot): void {
             );
           }
 
-          lastSeenShoutDate.set(user.userId, newestShoutDate);
+          lastSeenShoutTimestamp.set(user.userId, newestTimestamp);
         } catch (error) {
           console.error(
             `social notifications: failed to process user ${user.telegramId}`,

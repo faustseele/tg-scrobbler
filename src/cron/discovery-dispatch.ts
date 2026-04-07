@@ -1,58 +1,18 @@
 import cron from "node-cron";
 import { Bot, InputFile } from "grammy";
-import { eq, and } from "drizzle-orm";
 import { db } from "../db.js";
-import { users, serviceConnections, sentDiscoveries } from "../schema.js";
+import { sentDiscoveries } from "../schema.js";
+import { fetchLastfmConnectedUsers, LastfmConnectedUser } from "../user-lookup.js";
 import { getRecommendations } from "../recommendations.js";
 import { downloadTrack } from "../yt-dlp.js";
 import { escapeHtml } from "../utils.js";
-
-/** user row with Last.fm connection details needed for dispatch */
-interface LastfmUser {
-  userId: number;
-  telegramId: bigint;
-  serviceUsername: string;
-}
-
-/**
- * query all users who have a Last.fm connection.
- * returns userId, telegramId, and their Last.fm username.
- */
-async function fetchLastfmUsers(): Promise<LastfmUser[]> {
-  const rows = await db
-    .select({
-      userId: users.id,
-      telegramId: users.telegramId,
-      serviceUsername: serviceConnections.serviceUsername,
-    })
-    .from(users)
-    .innerJoin(
-      serviceConnections,
-      and(
-        eq(serviceConnections.userId, users.id),
-        eq(serviceConnections.serviceType, "lastfm")
-      )
-    );
-
-  const result: LastfmUser[] = [];
-  for (const row of rows) {
-    if (!row.serviceUsername) continue;
-    result.push({
-      userId: row.userId,
-      telegramId: row.telegramId,
-      serviceUsername: row.serviceUsername,
-    });
-  }
-
-  return result;
-}
 
 /**
  * attempt to download and send the first successful recommendation for a user.
  * iterates candidates in order, stops as soon as one is sent.
  * inserts into sent_discoveries to prevent re-sending.
  */
-async function dispatchForUser(bot: Bot, user: LastfmUser): Promise<void> {
+async function dispatchForUser(bot: Bot, user: LastfmConnectedUser): Promise<void> {
   const candidates = await getRecommendations(user.userId, user.serviceUsername, 5);
 
   if (!candidates.length) {
@@ -106,9 +66,9 @@ export function startDiscoveryDispatchCron(bot: Bot): void {
   cron.schedule(
     "0 10 * * 3,6",
     async () => {
-      let lastfmUsers: LastfmUser[];
+      let lastfmUsers: LastfmConnectedUser[];
       try {
-        lastfmUsers = await fetchLastfmUsers();
+        lastfmUsers = await fetchLastfmConnectedUsers();
       } catch (error) {
         console.error("discovery dispatch: failed to fetch Last.fm users", error);
         return;

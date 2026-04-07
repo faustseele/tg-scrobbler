@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { Bot } from "grammy";
-import { sql, eq, gte } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { db } from "../db.js";
 import { users, serviceConnections, scrobbleCache } from "../schema.js";
 import { escapeHtml } from "../utils.js";

@@ -615,13 +615,6 @@ interface LastfmShoutEntry {
   date: string;
 }
 
-/** shape of a successful user.getShouts response */
-interface ShoutsResponse {
-  shouts: {
-    shout: LastfmShoutEntry[] | LastfmShoutEntry;
-  };
-}
-
 /**
  * fetch the most recent shouts on a user's Last.fm profile
  * via user.getShouts — no signature required.
