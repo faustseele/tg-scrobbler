@@ -9,6 +9,7 @@ import toplists from "./commands/toplists.js";
 import random from "./commands/random.js";
 import collage from "./commands/collage.js";
 import { startWeeklyDigestCron } from "./cron/weekly-digest.js";
+import { startDiscoveryDispatchCron } from "./cron/discovery-dispatch.js";
 
 const botToken = process.env.BOT_TOKEN;
 if (!botToken) {
@@ -41,4 +42,5 @@ process.once("SIGINT", shutdown);
 process.once("SIGTERM", shutdown);
 
 startWeeklyDigestCron(bot);
+startDiscoveryDispatchCron(bot);
 bot.start();
