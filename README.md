@@ -40,6 +40,48 @@ npm run db:migrate
 
 TypeScript, Node.js, [grammY](https://grammy.dev), [Drizzle ORM](https://orm.drizzle.team), PostgreSQL (Neon)
 
+## Deployment (Fly.io)
+
+### Prerequisites
+
+- [Fly.io account](https://fly.io)
+- [`flyctl` CLI](https://fly.io/docs/hands-on/install-flyctl/) installed
+
+### Steps
+
+```bash
+fly auth login
+fly launch --no-deploy   # creates the app, skips first deploy
+```
+
+Set required secrets:
+
+```bash
+fly secrets set \
+  BOT_TOKEN=... \
+  DATABASE_URL=... \
+  LASTFM_API_KEY=... \
+  LASTFM_SHARED_SECRET=...
+```
+
+Optional Libre.fm vars (if you want Libre.fm scrobbling enabled):
+
+```bash
+fly secrets set LIBREFM_API_KEY=... LIBREFM_SHARED_SECRET=...
+```
+
+Run database migrations:
+
+```bash
+fly ssh console -C "npx drizzle-kit migrate"
+```
+
+Deploy:
+
+```bash
+fly deploy
+```
+
 ## License
 
 MIT
