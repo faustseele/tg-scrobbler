@@ -1,6 +1,39 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { db } from "./db.js";
 import { users, serviceConnections } from "./schema.js";
+
+/** user row with Last.fm connection details */
+export interface LastfmConnectedUser {
+  userId: number;
+  telegramId: bigint;
+  serviceUsername: string;
+}
+
+/**
+ * fetch all users who have an active Last.fm connection with a known username.
+ * used by cron jobs that need to iterate all Last.fm users.
+ */
+export async function fetchLastfmConnectedUsers(): Promise<LastfmConnectedUser[]> {
+  const rows = await db
+    .select({
+      userId: users.id,
+      telegramId: users.telegramId,
+      serviceUsername: serviceConnections.serviceUsername,
+    })
+    .from(users)
+    .innerJoin(
+      serviceConnections,
+      and(
+        eq(serviceConnections.userId, users.id),
+        eq(serviceConnections.serviceType, "lastfm")
+      )
+    )
+    .where(isNotNull(serviceConnections.serviceUsername));
+
+  return rows.filter(
+    (row): row is LastfmConnectedUser => row.serviceUsername !== null
+  );
+}
 
 interface UserConnection {
   userId: number;

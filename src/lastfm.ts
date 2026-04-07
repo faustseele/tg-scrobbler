@@ -532,6 +532,138 @@ export async function getTopTracks(
   );
 }
 
+/** normalised similar track entry returned by track.getSimilar */
+export interface SimilarTrack {
+  artist: string;
+  track: string;
+  /** similarity score 0–1 */
+  matchScore: number;
+}
+
+/** raw artist block inside a track.getSimilar entry — uses .name, not .#text */
+interface LastfmSimilarTrackArtist {
+  name: string;
+}
+
+/** raw entry from track.getSimilar */
+interface LastfmSimilarTrackEntry {
+  name: string;
+  match: string;
+  artist: LastfmSimilarTrackArtist;
+}
+
+/** shape of a successful track.getSimilar response */
+interface SimilarTracksResponse {
+  similartracks: {
+    track: LastfmSimilarTrackEntry[];
+  };
+}
+
+/**
+ * fetch tracks similar to a given artist+track via track.getSimilar —
+ * no signature required. returns empty array on any failure
+ */
+export async function getSimilarTracks(
+  config: LastfmConfig,
+  artist: string,
+  track: string,
+  limit: number = 10
+): Promise<SimilarTrack[]> {
+  const url = new URL(config.apiUrl);
+  url.searchParams.set("method", "track.getSimilar");
+  url.searchParams.set("artist", artist);
+  url.searchParams.set("track", track);
+  url.searchParams.set("api_key", config.apiKey);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("limit", String(limit));
+
+  const response = await fetch(url.toString());
+  const data: unknown = await response.json();
+
+  if (isLastfmError(data)) {
+    console.warn(`track.getSimilar failed — error ${data.error}: ${data.message}`);
+    return [];
+  }
+
+  const { similartracks } = data as SimilarTracksResponse;
+  const tracks = similartracks.track;
+
+  if (!Array.isArray(tracks)) {
+    console.warn(`track.getSimilar — unexpected response shape for "${artist} - ${track}"`);
+    return [];
+  }
+
+  return tracks.map((entry) => ({
+    artist: entry.artist.name,
+    track: entry.name,
+    matchScore: parseFloat(entry.match),
+  }));
+}
+
+/** a shout left on a user's Last.fm profile page */
+export interface Shout {
+  body: string;
+  author: string;
+  /** human-readable date string as returned by the API */
+  date: string;
+}
+
+/** raw shout entry from user.getShouts */
+interface LastfmShoutEntry {
+  body: string;
+  author: string;
+  date: string;
+}
+
+/**
+ * fetch the most recent shouts on a user's Last.fm profile
+ * via user.getShouts — no signature required.
+ * returns empty array on any failure or when the user has no shouts
+ */
+export async function getShouts(
+  config: LastfmConfig,
+  username: string,
+  limit: number = 5
+): Promise<Shout[]> {
+  const url = new URL(config.apiUrl);
+  url.searchParams.set("method", "user.getShouts");
+  url.searchParams.set("user", username);
+  url.searchParams.set("api_key", config.apiKey);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("limit", String(limit));
+
+  const response = await fetch(url.toString());
+  const data: unknown = await response.json();
+
+  if (isLastfmError(data)) {
+    console.warn(`user.getShouts failed — error ${data.error}: ${data.message}`);
+    return [];
+  }
+
+  const wrapper = (data as Record<string, unknown>)["shouts"];
+  if (typeof wrapper !== "object" || wrapper === null) {
+    console.warn(`user.getShouts — unexpected response shape for "${username}"`);
+    return [];
+  }
+
+  const rawShout = (wrapper as Record<string, unknown>)["shout"];
+
+  if (rawShout === undefined || rawShout === null) {
+    return [];
+  }
+
+  /** Last.fm returns a single object instead of an array when there's exactly one shout */
+  const entries: LastfmShoutEntry[] = Array.isArray(rawShout)
+    ? (rawShout as LastfmShoutEntry[])
+    : [rawShout as LastfmShoutEntry];
+
+  return entries.map((entry) => ({
+    body: entry.body,
+    author: entry.author,
+    date: entry.date,
+  }));
+}
+
 /**
  * fetch the most recently loved tracks for a user
  * via user.getLovedTracks — no signature required
