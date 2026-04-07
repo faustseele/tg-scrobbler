@@ -1,0 +1,17 @@
+app = "tg-scrobbler"
+primary_region = "ams"
+
+[build]
+
+[processes]
+  app = "node dist/index.js"
+
+[env]
+  NODE_ENV = "production"
+
+# no [[services]] — worker process, not an HTTP server
+# no [http_service] — long polling, no public port
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
