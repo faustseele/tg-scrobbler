@@ -11,26 +11,32 @@ const composer = new Composer<Context>();
 /**
  * format a RecentTrack into the HTML reply string for /np
  */
-function formatNowPlayingReply(track: {
-  artist: string;
-  track: string;
-  album: string;
-  trackUrl: string;
-  isNowPlaying: boolean;
-  timestamp: string | null;
-}): string {
+function formatNowPlayingReply(
+  track: {
+    artist: string;
+    track: string;
+    album: string;
+    trackUrl: string;
+    isNowPlaying: boolean;
+    timestamp: string | null;
+  },
+  lang: string
+): string {
   const artist = escapeHtml(track.artist);
   const trackName = escapeHtml(track.track);
   const album = escapeHtml(track.album);
+  const escapedUrl = escapeHtml(track.trackUrl);
+  const prefix = t("np.prefix", lang);
 
   const albumSuffix = album ? ` [${album}]` : "";
+  const link = `<a href="${escapedUrl}">${escapedUrl}</a>`;
 
   if (track.isNowPlaying) {
-    return `🎧 <b>${artist}</b> — ${trackName}${albumSuffix}\n${track.trackUrl}`;
+    return `${prefix} <b>${artist}</b> \u2014 ${trackName}${albumSuffix}\n${link}`;
   }
 
   const timestampSuffix = track.timestamp ? `, ${escapeHtml(track.timestamp)}` : "";
-  return `🎧 <b>${artist}</b> — ${trackName}${albumSuffix}${timestampSuffix}\n${track.trackUrl}`;
+  return `${prefix} <b>${artist}</b> \u2014 ${trackName}${albumSuffix}${timestampSuffix}\n${link}`;
 }
 
 /**
@@ -62,7 +68,7 @@ composer.command("np", async (context) => {
       return;
     }
 
-    await context.reply(formatNowPlayingReply(recentTrack), { parse_mode: "HTML" });
+    await context.reply(formatNowPlayingReply(recentTrack, lang), { parse_mode: "HTML" });
     return;
   }
 
@@ -74,7 +80,7 @@ composer.command("np", async (context) => {
       return;
     }
 
-    await context.reply(formatNowPlayingReply(recentTrack), { parse_mode: "HTML" });
+    await context.reply(formatNowPlayingReply(recentTrack, lang), { parse_mode: "HTML" });
   }
 });
 

@@ -14,6 +14,8 @@ const ptBr: Record<string, string> = {
   /** /np */
   "np.nothing_playing":
     "Silêncio total. Vai colocar alguma coisa pra tocar.",
+  "np.prefix":
+    "\u{1F3A7}",
 
   /** /loved */
   "loved.header":
@@ -32,6 +34,8 @@ const ptBr: Record<string, string> = {
   /** /random */
   "random.no_history":
     "Seu histórico tá meio ralo. Me alimenta mais.",
+  "random.prefix":
+    "\u{1F3B2}",
 
   /** /collage */
   "collage.generating":

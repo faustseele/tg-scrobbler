@@ -14,6 +14,8 @@ const en: Record<string, string> = {
   /** /np */
   "np.nothing_playing":
     "Dead air. Go put something on.",
+  "np.prefix":
+    "\u{1F3A7}",
 
   /** /loved */
   "loved.header":
@@ -30,6 +32,8 @@ const en: Record<string, string> = {
     "Nothing to show for that period. You've been quiet.",
 
   /** /random */
+  "random.prefix":
+    "\u{1F3B2}",
   "random.no_history":
     "Your library's looking thin. Feed me more.",
 

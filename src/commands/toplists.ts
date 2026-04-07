@@ -64,11 +64,11 @@ function formatTopItem(item: TopItem, index: number, entityType: EntityType): st
   const plays = item.playCount === 1 ? "1 play" : `${item.playCount} plays`;
 
   if (entityType === "artists" || item.artist === null) {
-    return `${index + 1}. <a href="${escapedUrl}">${escapedName}</a> — ${plays}`;
+    return `${index + 1}. <a href="${escapedUrl}"><b>${escapedName}</b></a> \u2014 ${plays}`;
   }
 
   const escapedArtist = escapeHtml(item.artist);
-  return `${index + 1}. <a href="${escapedUrl}">${escapedArtist} — ${escapedName}</a> — ${plays}`;
+  return `${index + 1}. <b>${escapedArtist}</b> \u2014 <a href="${escapedUrl}">${escapedName}</a> \u2014 ${plays}`;
 }
 
 /**

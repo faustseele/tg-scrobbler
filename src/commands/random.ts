@@ -16,15 +16,19 @@ const entityTypes: EntityType[] = ["artists", "albums", "tracks"];
 /**
  * format a random TopItem pick into the HTML reply string
  */
-function formatRandomReply(item: TopItem, entityType: EntityType): string {
+function formatRandomReply(item: TopItem, entityType: EntityType, lang: string): string {
   const name = escapeHtml(item.name);
-  const artist = item.artist !== null ? escapeHtml(item.artist) : null;
+  const escapedUrl = escapeHtml(item.url);
+  const plays = item.playCount === 1 ? "1 play" : `${item.playCount} plays`;
+  const prefix = t("random.prefix", lang);
+  const link = `<a href="${escapedUrl}">${escapedUrl}</a>`;
 
   if (entityType === "artists") {
-    return `🎲 <b>${name}</b> — ${item.playCount} plays\n${item.url}`;
+    return `${prefix} <b>${name}</b> \u2014 ${plays}\n${link}`;
   }
 
-  return `🎲 <b>${artist} — ${name}</b> — ${item.playCount} plays\n${item.url}`;
+  const artist = item.artist !== null ? escapeHtml(item.artist) : null;
+  return `${prefix} <b>${artist}</b> \u2014 ${name} \u2014 ${plays}\n${link}`;
 }
 
 /**
@@ -71,7 +75,7 @@ composer.command("random", async (context) => {
 
   const item = items[Math.floor(Math.random() * items.length)];
 
-  await context.reply(formatRandomReply(item, entityType), { parse_mode: "HTML" });
+  await context.reply(formatRandomReply(item, entityType, lang), { parse_mode: "HTML" });
 });
 
 export default composer;

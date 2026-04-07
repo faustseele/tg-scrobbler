@@ -14,6 +14,8 @@ const ru: Record<string, string> = {
   /** /np */
   "np.nothing_playing":
     "Тишина. Поставь что-нибудь.",
+  "np.prefix":
+    "\u{1F3A7}",
 
   /** /loved */
   "loved.header":
@@ -32,6 +34,8 @@ const ru: Record<string, string> = {
   /** /random */
   "random.no_history":
     "Библиотека жидковата. Покорми меня больше.",
+  "random.prefix":
+    "\u{1F3B2}",
 
   /** /collage */
   "collage.generating":

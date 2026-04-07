@@ -18,14 +18,13 @@ function formatLovedTrackItem(
 ): string {
   const artist = escapeHtml(track.artist);
   const trackName = escapeHtml(track.track);
-  const label = `${artist} — ${trackName}`;
   const dateSuffix = track.lovedAt ? `, ${escapeHtml(track.lovedAt)}` : "";
 
   if (track.trackUrl) {
-    return `${index}. <a href="${track.trackUrl}">${label}</a>${dateSuffix}`;
+    return `${index}. <b>${artist}</b> \u2014 <a href="${track.trackUrl}">${trackName}</a>${dateSuffix}`;
   }
 
-  return `${index}. ${label}${dateSuffix}`;
+  return `${index}. <b>${artist}</b> \u2014 ${trackName}${dateSuffix}`;
 }
 
 /**

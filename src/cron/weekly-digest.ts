@@ -117,14 +117,14 @@ function formatDigestMessage(
   const artistLines = topArtists
     .map((entry, index) => {
       const playsLabel = entry.playCount === 1 ? "1 play" : `${entry.playCount} plays`;
-      return `${index + 1}. ${escapeHtml(entry.artist)} \u2014 ${playsLabel}`;
+      return `${index + 1}. <b>${escapeHtml(entry.artist)}</b> \u2014 ${playsLabel}`;
     })
     .join("\n");
 
   const trackLines = topTracks
     .map((entry, index) => {
       const playsLabel = entry.playCount === 1 ? "1 play" : `${entry.playCount} plays`;
-      return `${index + 1}. ${escapeHtml(entry.artist)} \u2014 ${escapeHtml(entry.track)} \u2014 ${playsLabel}`;
+      return `${index + 1}. <b>${escapeHtml(entry.artist)}</b> \u2014 ${escapeHtml(entry.track)} \u2014 ${playsLabel}`;
     })
     .join("\n");
 
