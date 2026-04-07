@@ -4,6 +4,7 @@ import { getTopArtists, getTopAlbums, getTopTracks } from "../lastfm.js";
 import type { TopItem } from "../lastfm.js";
 import { resolveLastfmConnection } from "../user-lookup.js";
 import { escapeHtml } from "../utils.js";
+import { t } from "../i18n/index.js";
 
 const composer = new Composer<Context>();
 
@@ -15,15 +16,19 @@ const entityTypes: EntityType[] = ["artists", "albums", "tracks"];
 /**
  * format a random TopItem pick into the HTML reply string
  */
-function formatRandomReply(item: TopItem, entityType: EntityType): string {
+function formatRandomReply(item: TopItem, entityType: EntityType, lang: string): string {
   const name = escapeHtml(item.name);
-  const artist = item.artist !== null ? escapeHtml(item.artist) : null;
+  const escapedUrl = escapeHtml(item.url);
+  const plays = item.playCount === 1 ? "1 play" : `${item.playCount} plays`;
+  const prefix = t("random.prefix", lang);
+  const link = `<a href="${escapedUrl}">${escapedUrl}</a>`;
 
   if (entityType === "artists") {
-    return `🎲 <b>${name}</b> — ${item.playCount} plays\n${item.url}`;
+    return `${prefix} <b>${name}</b> \u2014 ${plays}\n${link}`;
   }
 
-  return `🎲 <b>${artist} — ${name}</b> — ${item.playCount} plays\n${item.url}`;
+  const artist = item.artist !== null ? escapeHtml(item.artist) : null;
+  return `${prefix} <b>${artist}</b> \u2014 ${name} \u2014 ${plays}\n${link}`;
 }
 
 /**
@@ -52,9 +57,10 @@ composer.command("random", async (context) => {
     return;
   }
 
+  const lang = from.language_code ?? "en";
   const connection = await resolveLastfmConnection(BigInt(from.id));
   if (!connection) {
-    await context.reply("Random picks require a Last.fm connection for now.");
+    await context.reply(t("common.no_lastfm", lang));
     return;
   }
 
@@ -63,13 +69,13 @@ composer.command("random", async (context) => {
   const items = await fetchItems(entityType, connection.serviceUsername);
 
   if (!items.length) {
-    await context.reply("Not enough history yet. Scrobble more!");
+    await context.reply(t("random.no_history", lang));
     return;
   }
 
   const item = items[Math.floor(Math.random() * items.length)];
 
-  await context.reply(formatRandomReply(item, entityType), { parse_mode: "HTML" });
+  await context.reply(formatRandomReply(item, entityType, lang), { parse_mode: "HTML" });
 });
 
 export default composer;

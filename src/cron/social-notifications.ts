@@ -4,6 +4,7 @@ import { getShouts } from "../lastfm.js";
 import { lastfmConfig } from "../config.js";
 import { escapeHtml } from "../utils.js";
 import { fetchLastfmConnectedUsers, LastfmConnectedUser } from "../user-lookup.js";
+import { t } from "../i18n/index.js";
 
 /**
  * in-memory map from userId -> unix timestamp (ms) of the newest seen shout.
@@ -55,10 +56,16 @@ export function startSocialNotificationsCron(bot: Bot): void {
             (shout) => parseShoutDate(shout.date) > previouslySeen
           );
 
+          const lang = user.language ?? "en";
+
           for (const shout of newShouts) {
+            const notification = t("shout.notification", lang, {
+              author: escapeHtml(shout.author),
+              body: escapeHtml(shout.body),
+            });
             await bot.api.sendMessage(
               String(user.telegramId),
-              `\u{1F4E3} Shout from <b>${escapeHtml(shout.author)}</b>:\n${escapeHtml(shout.body)}`,
+              `${notification}\n${escapeHtml(shout.body)}`,
               { parse_mode: "HTML" }
             );
           }

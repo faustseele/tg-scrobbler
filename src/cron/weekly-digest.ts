@@ -4,6 +4,7 @@ import { sql, eq } from "drizzle-orm";
 import { db } from "../db.js";
 import { users, serviceConnections, scrobbleCache } from "../schema.js";
 import { escapeHtml } from "../utils.js";
+import { t } from "../i18n/index.js";
 
 /** top artist entry aggregated from scrobble_cache */
 interface TopArtist {
@@ -22,6 +23,7 @@ interface TopTrack {
 interface ConnectedUser {
   telegramId: bigint;
   userId: number;
+  language: string | null;
 }
 
 /**
@@ -32,6 +34,7 @@ async function fetchConnectedUsers(): Promise<ConnectedUser[]> {
     .selectDistinct({
       telegramId: users.telegramId,
       userId: users.id,
+      language: users.language,
     })
     .from(users)
     .innerJoin(serviceConnections, eq(serviceConnections.userId, users.id));
@@ -39,6 +42,7 @@ async function fetchConnectedUsers(): Promise<ConnectedUser[]> {
   return rows.map((row) => ({
     telegramId: row.telegramId,
     userId: row.userId,
+    language: row.language,
   }));
 }
 
@@ -107,33 +111,32 @@ async function fetchUserDigestData(
 function formatDigestMessage(
   totalCount: number,
   topArtists: TopArtist[],
-  topTracks: TopTrack[]
+  topTracks: TopTrack[],
+  lang: string
 ): string {
-  const scrobbleLabel = totalCount === 1 ? "1 scrobble" : `${totalCount} scrobbles`;
-
   const artistLines = topArtists
     .map((entry, index) => {
       const playsLabel = entry.playCount === 1 ? "1 play" : `${entry.playCount} plays`;
-      return `${index + 1}. ${escapeHtml(entry.artist)} \u2014 ${playsLabel}`;
+      return `${index + 1}. <b>${escapeHtml(entry.artist)}</b> \u2014 ${playsLabel}`;
     })
     .join("\n");
 
   const trackLines = topTracks
     .map((entry, index) => {
       const playsLabel = entry.playCount === 1 ? "1 play" : `${entry.playCount} plays`;
-      return `${index + 1}. ${escapeHtml(entry.artist)} \u2014 ${escapeHtml(entry.track)} \u2014 ${playsLabel}`;
+      return `${index + 1}. <b>${escapeHtml(entry.artist)}</b> \u2014 ${escapeHtml(entry.track)} \u2014 ${playsLabel}`;
     })
     .join("\n");
 
   return [
-    "\u{1F4CA} Your week in music:",
+    t("digest.header", lang),
     "",
-    `\u{1F3B5} ${scrobbleLabel} this week`,
+    t("digest.scrobble_count", lang, { count: String(totalCount) }),
     "",
-    "\u{1F3C6} Top artists:",
+    t("digest.top_artists", lang),
     artistLines,
     "",
-    "\u{1F3B6} Top tracks:",
+    t("digest.top_tracks", lang),
     trackLines,
   ].join("\n");
 }
@@ -166,7 +169,8 @@ export function startWeeklyDigestCron(bot: Bot): void {
           const message = formatDigestMessage(
             data.totalCount,
             data.topArtists,
-            data.topTracks
+            data.topTracks,
+            user.language ?? "en"
           );
 
           await bot.api.sendMessage(String(user.telegramId), message, {

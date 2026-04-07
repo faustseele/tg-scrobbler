@@ -4,6 +4,7 @@ import { db } from "../db.js";
 import { users } from "../schema.js";
 import { extractTrackMetadata } from "../metadata.js";
 import { submitScrobble } from "../scrobble-service.js";
+import { t } from "../i18n/index.js";
 
 const composer = new Composer<Context>();
 
@@ -18,6 +19,7 @@ composer.on("message:audio", async (context) => {
     return;
   }
 
+  const lang = from.language_code ?? "en";
   const telegramId = BigInt(from.id);
 
   const userRow = await db
@@ -28,9 +30,7 @@ composer.on("message:audio", async (context) => {
 
   const user = userRow[0];
   if (!user) {
-    await context.reply(
-      "Connect a service first with /login_lastfm, /login_librefm, or /login_listenbrainz"
-    );
+    await context.reply(t("common.connect_first", lang));
     return;
   }
 
@@ -45,7 +45,7 @@ composer.on("message:audio", async (context) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`audio file download failed for telegramId=${from.id}: ${message}`);
-    await context.reply("Couldn't download the audio file. Try again in a moment.");
+    await context.reply(t("scrobble.download_failed", lang));
     return;
   }
 
@@ -53,9 +53,7 @@ composer.on("message:audio", async (context) => {
   const metadata = await extractTrackMetadata(audioBuffer, mimeType);
 
   if (!metadata) {
-    await context.reply(
-      "Couldn't read tags from this file. Make sure it has artist and title metadata."
-    );
+    await context.reply(t("scrobble.no_tags", lang));
     return;
   }
 
@@ -71,21 +69,19 @@ composer.on("message:audio", async (context) => {
   const hasFailed = failed.length > 0;
 
   if (!hasSucceeded && !hasFailed) {
-    await context.reply(
-      "No services connected. Use /login_lastfm, /login_librefm, or /login_listenbrainz first."
-    );
+    await context.reply(t("scrobble.no_connections", lang));
     return;
   }
 
   if (!hasSucceeded && hasFailed) {
-    await context.reply(`Scrobble failed on all services: ${failed.join(", ")}.`);
+    await context.reply(t("scrobble.all_failed", lang, { failed: failed.join(", ") }));
     return;
   }
 
   await context.react("🎉");
 
   if (hasFailed) {
-    await context.reply(`Scrobbled, but ${failed.join(", ")} didn't go through.`);
+    await context.reply(t("scrobble.partial_failed", lang, { failed: failed.join(", ") }));
   }
 });
 

@@ -1,4 +1,5 @@
 import { Bot } from "grammy";
+import { t } from "./i18n/index.js";
 import loginLastfm from "./commands/login-lastfm.js";
 import loginLibrefm from "./commands/login-librefm.js";
 import loginListenbrainz from "./commands/login-listenbrainz.js";
@@ -20,9 +21,8 @@ if (!botToken) {
 const bot = new Bot(botToken);
 
 bot.command("start", (context) => {
-  return context.reply(
-    "Your listening history, in your pocket. I track what you play and scrobble it to Last.fm — no fuss.\n\nType /help to see what I can do."
-  );
+  const lang = context.from?.language_code ?? "en";
+  return context.reply(t("start.welcome", lang));
 });
 
 bot.use(loginLastfm);

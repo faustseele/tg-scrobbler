@@ -7,6 +7,7 @@ export interface LastfmConnectedUser {
   userId: number;
   telegramId: bigint;
   serviceUsername: string;
+  language: string | null;
 }
 
 /**
@@ -19,6 +20,7 @@ export async function fetchLastfmConnectedUsers(): Promise<LastfmConnectedUser[]
       userId: users.id,
       telegramId: users.telegramId,
       serviceUsername: serviceConnections.serviceUsername,
+      language: users.language,
     })
     .from(users)
     .innerJoin(
