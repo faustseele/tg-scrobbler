@@ -532,6 +532,74 @@ export async function getTopTracks(
   );
 }
 
+/** normalised similar track entry returned by track.getSimilar */
+export interface SimilarTrack {
+  artist: string;
+  track: string;
+  /** similarity score 0–1 */
+  matchScore: number;
+}
+
+/** raw artist block inside a track.getSimilar entry — uses .name, not .#text */
+interface LastfmSimilarTrackArtist {
+  name: string;
+}
+
+/** raw entry from track.getSimilar */
+interface LastfmSimilarTrackEntry {
+  name: string;
+  match: string;
+  artist: LastfmSimilarTrackArtist;
+}
+
+/** shape of a successful track.getSimilar response */
+interface SimilarTracksResponse {
+  similartracks: {
+    track: LastfmSimilarTrackEntry[];
+  };
+}
+
+/**
+ * fetch tracks similar to a given artist+track via track.getSimilar —
+ * no signature required. returns empty array on any failure
+ */
+export async function getSimilarTracks(
+  config: LastfmConfig,
+  artist: string,
+  track: string,
+  limit: number = 10
+): Promise<SimilarTrack[]> {
+  const url = new URL(config.apiUrl);
+  url.searchParams.set("method", "track.getSimilar");
+  url.searchParams.set("artist", artist);
+  url.searchParams.set("track", track);
+  url.searchParams.set("api_key", config.apiKey);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("limit", String(limit));
+
+  const response = await fetch(url.toString());
+  const data: unknown = await response.json();
+
+  if (isLastfmError(data)) {
+    console.warn(`track.getSimilar failed — error ${data.error}: ${data.message}`);
+    return [];
+  }
+
+  const { similartracks } = data as SimilarTracksResponse;
+  const tracks = similartracks.track;
+
+  if (!Array.isArray(tracks)) {
+    console.warn(`track.getSimilar — unexpected response shape for "${artist} - ${track}"`);
+    return [];
+  }
+
+  return tracks.map((entry) => ({
+    artist: entry.artist.name,
+    track: entry.name,
+    matchScore: parseFloat(entry.match),
+  }));
+}
+
 /**
  * fetch the most recently loved tracks for a user
  * via user.getLovedTracks — no signature required
