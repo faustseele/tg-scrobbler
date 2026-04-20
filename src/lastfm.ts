@@ -191,18 +191,6 @@ export interface LovedTrack {
   lovedAt: string | null;
 }
 
-/** normalised track data from user.getRecentTracks */
-export interface RecentTrack {
-  artist: string;
-  track: string;
-  album: string;
-  albumArtUrl: string | null;
-  trackUrl: string;
-  isNowPlaying: boolean;
-  /** human-readable timestamp, null when the track is currently playing */
-  timestamp: string | null;
-}
-
 /** raw artist block inside a loved track entry — uses .name, not .#text */
 interface LastfmLovedTrackArtist {
   name: string;
@@ -234,72 +222,6 @@ interface LastfmImage {
   size: string;
 }
 
-/** raw track entry from user.getRecentTracks */
-interface LastfmTrackEntry {
-  name: string;
-  url: string;
-  artist: { "#text": string };
-  album: { "#text": string };
-  image: LastfmImage[];
-  date?: { uts: string; "#text": string };
-  "@attr"?: { nowplaying: "true" };
-}
-
-/** shape of a successful user.getRecentTracks response */
-interface RecentTracksResponse {
-  recenttracks: {
-    track: LastfmTrackEntry[];
-  };
-}
-
-/**
- * fetch the most recent (or currently playing) track for a user
- * via user.getRecentTracks with limit=1 — no signature required
- */
-export async function getRecentTrack(
-  config: LastfmConfig,
-  username: string
-): Promise<RecentTrack | null> {
-  const url = new URL(config.apiUrl);
-  url.searchParams.set("method", "user.getrecenttracks");
-  url.searchParams.set("user", username);
-  url.searchParams.set("api_key", config.apiKey);
-  url.searchParams.set("format", "json");
-  url.searchParams.set("limit", "1");
-
-  const response = await fetch(url.toString());
-  const data: unknown = await response.json();
-
-  if (isLastfmError(data)) {
-    console.warn(`user.getrecenttracks failed — error ${data.error}: ${data.message}`);
-    return null;
-  }
-
-  const { recenttracks } = data as RecentTracksResponse;
-  const tracks = recenttracks.track;
-
-  if (!tracks.length) {
-    return null;
-  }
-
-  const entry = tracks[0];
-  const isNowPlaying = entry["@attr"]?.nowplaying === "true";
-
-  const extralargeImage = entry.image.find((image) => image.size === "extralarge");
-  /** Last.fm returns an empty string when no art exists — treat that as null */
-  const albumArtUrl = extralargeImage?.["#text"] || null;
-
-  return {
-    artist: entry.artist["#text"],
-    track: entry.name,
-    album: entry.album["#text"],
-    albumArtUrl,
-    trackUrl: entry.url,
-    isNowPlaying,
-    timestamp: isNowPlaying ? null : (entry.date?.["#text"] ?? null),
-  };
-}
-
 /** period options accepted by the user.getTop* endpoints */
 export type TopPeriod = "7day" | "1month" | "3month" | "12month" | "overall";
 
@@ -312,28 +234,17 @@ export interface TopItem {
   artist: string | null;
 }
 
-/** raw artist entry from user.getTopArtists */
-interface LastfmTopArtistEntry {
-  name: string;
-  playcount: string;
-  url: string;
-}
-
 /** raw artist sub-object inside album/track entries */
 interface LastfmEntryArtist {
   name: string;
 }
 
-/** raw album entry from user.getTopAlbums */
-interface LastfmTopAlbumEntry {
+/** raw album entry including image data — used when art URLs are needed */
+interface LastfmTopAlbumEntryWithImage {
   name: string;
   playcount: string;
   url: string;
   artist: LastfmEntryArtist;
-}
-
-/** raw album entry including image data — used when art URLs are needed */
-interface LastfmTopAlbumEntryWithImage extends LastfmTopAlbumEntry {
   image: LastfmImage[];
 }
 
@@ -401,60 +312,6 @@ async function fetchTopList<TEntry>(
   }
 
   return (entries as TEntry[]).map(toTopItem);
-}
-
-/**
- * fetch the user's top artists for a given period via user.getTopArtists —
- * no signature required
- */
-export async function getTopArtists(
-  config: LastfmConfig,
-  username: string,
-  period: TopPeriod = "overall",
-  limit: number = 10
-): Promise<TopItem[]> {
-  return fetchTopList<LastfmTopArtistEntry>(
-    config,
-    "user.gettopartists",
-    "topartists",
-    "artist",
-    username,
-    period,
-    limit,
-    (entry) => ({
-      name: entry.name,
-      playCount: Number(entry.playcount),
-      url: entry.url,
-      artist: null,
-    })
-  );
-}
-
-/**
- * fetch the user's top albums for a given period via user.getTopAlbums —
- * no signature required
- */
-export async function getTopAlbums(
-  config: LastfmConfig,
-  username: string,
-  period: TopPeriod = "overall",
-  limit: number = 10
-): Promise<TopItem[]> {
-  return fetchTopList<LastfmTopAlbumEntry>(
-    config,
-    "user.gettopalbums",
-    "topalbums",
-    "album",
-    username,
-    period,
-    limit,
-    (entry) => ({
-      name: entry.name,
-      playCount: Number(entry.playcount),
-      url: entry.url,
-      artist: entry.artist.name,
-    })
-  );
 }
 
 /**
@@ -597,70 +454,6 @@ export async function getSimilarTracks(
     artist: entry.artist.name,
     track: entry.name,
     matchScore: parseFloat(entry.match),
-  }));
-}
-
-/** a shout left on a user's Last.fm profile page */
-export interface Shout {
-  body: string;
-  author: string;
-  /** human-readable date string as returned by the API */
-  date: string;
-}
-
-/** raw shout entry from user.getShouts */
-interface LastfmShoutEntry {
-  body: string;
-  author: string;
-  date: string;
-}
-
-/**
- * fetch the most recent shouts on a user's Last.fm profile
- * via user.getShouts — no signature required.
- * returns empty array on any failure or when the user has no shouts
- */
-export async function getShouts(
-  config: LastfmConfig,
-  username: string,
-  limit: number = 5
-): Promise<Shout[]> {
-  const url = new URL(config.apiUrl);
-  url.searchParams.set("method", "user.getShouts");
-  url.searchParams.set("user", username);
-  url.searchParams.set("api_key", config.apiKey);
-  url.searchParams.set("format", "json");
-  url.searchParams.set("limit", String(limit));
-
-  const response = await fetch(url.toString());
-  const data: unknown = await response.json();
-
-  if (isLastfmError(data)) {
-    console.warn(`user.getShouts failed — error ${data.error}: ${data.message}`);
-    return [];
-  }
-
-  const wrapper = (data as Record<string, unknown>)["shouts"];
-  if (typeof wrapper !== "object" || wrapper === null) {
-    console.warn(`user.getShouts — unexpected response shape for "${username}"`);
-    return [];
-  }
-
-  const rawShout = (wrapper as Record<string, unknown>)["shout"];
-
-  if (rawShout === undefined || rawShout === null) {
-    return [];
-  }
-
-  /** Last.fm returns a single object instead of an array when there's exactly one shout */
-  const entries: LastfmShoutEntry[] = Array.isArray(rawShout)
-    ? (rawShout as LastfmShoutEntry[])
-    : [rawShout as LastfmShoutEntry];
-
-  return entries.map((entry) => ({
-    body: entry.body,
-    author: entry.author,
-    date: entry.date,
   }));
 }
 

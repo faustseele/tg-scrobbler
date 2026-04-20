@@ -11,32 +11,6 @@ const ptBr: Record<string, string> = {
   "common.service_error":
     "Não consegui falar com o {service} agora. Tenta de novo em um instante.",
 
-  /** /np */
-  "np.nothing_playing":
-    "Silêncio total. Vai colocar alguma coisa pra tocar.",
-  "np.prefix":
-    "\u{1F3A7}",
-
-  /** /loved */
-  "loved.header":
-    "\u2764\uFE0F Faixas amadas:",
-  "loved.empty":
-    "Nada amado ainda. Você tá ouvindo sem se comprometer — escolha ousada.",
-
-  /** /toplists */
-  "toplists.choose_type":
-    "Artistas, álbuns ou faixas — o que a gente tá vendo?",
-  "toplists.choose_period":
-    "Escolhe um período:",
-  "toplists.no_data":
-    "Nada pra mostrar nesse período. Você ficou em silêncio.",
-
-  /** /random */
-  "random.no_history":
-    "Seu histórico tá meio ralo. Me alimenta mais.",
-  "random.prefix":
-    "\u{1F3B2}",
-
   /** /collage */
   "collage.generating":
     "Montando a grade de capas...",
@@ -81,23 +55,9 @@ const ptBr: Record<string, string> = {
   "listenbrainz.unreachable":
     "Não consigo alcançar o ListenBrainz agora. Tenta de novo em um instante.",
 
-  /** cron de digest semanal */
-  "digest.header":
-    "\u{1F4CA} Sua semana em música:",
-  "digest.scrobble_count":
-    "\u{1F3B5} {count} scrobbles essa semana",
-  "digest.top_artists":
-    "\u{1F3C6} Top artistas:",
-  "digest.top_tracks":
-    "\u{1F3B6} Top faixas:",
-
   /** cron de discovery */
   "discovery.caption":
     "\u{1F3B5} Discovery: <b>{artist}</b> \u2014 {track}",
-
-  /** cron de notificações sociais */
-  "shout.notification":
-    "\u{1F4E3} Shout de <b>{author}</b>:",
 };
 
 export default ptBr;

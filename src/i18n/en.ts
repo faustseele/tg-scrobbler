@@ -11,32 +11,6 @@ const en: Record<string, string> = {
   "common.service_error":
     "Couldn't reach {service} right now. Try again in a moment.",
 
-  /** /np */
-  "np.nothing_playing":
-    "Dead air. Go put something on.",
-  "np.prefix":
-    "\u{1F3A7}",
-
-  /** /loved */
-  "loved.header":
-    "\u2764\uFE0F Loved tracks:",
-  "loved.empty":
-    "Nothing loved yet. You've been listening without committing — bold choice.",
-
-  /** /toplists */
-  "toplists.choose_type":
-    "Artists, albums, or tracks — what are we looking at?",
-  "toplists.choose_period":
-    "Pick a window:",
-  "toplists.no_data":
-    "Nothing to show for that period. You've been quiet.",
-
-  /** /random */
-  "random.prefix":
-    "\u{1F3B2}",
-  "random.no_history":
-    "Your library's looking thin. Feed me more.",
-
   /** /collage */
   "collage.generating":
     "Pulling the art together...",
@@ -81,23 +55,9 @@ const en: Record<string, string> = {
   "listenbrainz.unreachable":
     "Can't reach ListenBrainz right now. Try again in a moment.",
 
-  /** weekly digest cron */
-  "digest.header":
-    "\u{1F4CA} Your week in music:",
-  "digest.scrobble_count":
-    "\u{1F3B5} {count} scrobbles this week",
-  "digest.top_artists":
-    "\u{1F3C6} Top artists:",
-  "digest.top_tracks":
-    "\u{1F3B6} Top tracks:",
-
   /** discovery dispatch cron */
   "discovery.caption":
     "\u{1F3B5} Discovery: <b>{artist}</b> \u2014 {track}",
-
-  /** social notifications cron */
-  "shout.notification":
-    "\u{1F4E3} Shout from <b>{author}</b>:",
 };
 
 export default en;

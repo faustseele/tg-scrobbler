@@ -4,14 +4,8 @@ import loginLastfm from "./commands/login-lastfm.js";
 import loginLibrefm from "./commands/login-librefm.js";
 import loginListenbrainz from "./commands/login-listenbrainz.js";
 import scrobble from "./commands/scrobble.js";
-import np from "./commands/np.js";
-import loved from "./commands/loved.js";
-import toplists from "./commands/toplists.js";
-import random from "./commands/random.js";
 import collage from "./commands/collage.js";
-import { startWeeklyDigestCron } from "./cron/weekly-digest.js";
 import { startDiscoveryDispatchCron } from "./cron/discovery-dispatch.js";
-import { startSocialNotificationsCron } from "./cron/social-notifications.js";
 
 const botToken = process.env.BOT_TOKEN;
 if (!botToken) {
@@ -29,10 +23,6 @@ bot.use(loginLastfm);
 bot.use(loginLibrefm);
 bot.use(loginListenbrainz);
 bot.use(scrobble);
-bot.use(np);
-bot.use(loved);
-bot.use(toplists);
-bot.use(random);
 bot.use(collage);
 
 const shutdown = () => {
@@ -46,9 +36,7 @@ process.on("unhandledRejection", (reason) => {
   console.error("unhandled rejection:", reason);
 });
 
-startWeeklyDigestCron(bot);
 startDiscoveryDispatchCron(bot);
-startSocialNotificationsCron(bot);
 
 console.info("sigil starting...");
 bot.start();

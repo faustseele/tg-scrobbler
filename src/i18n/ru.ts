@@ -11,32 +11,6 @@ const ru: Record<string, string> = {
   "common.service_error":
     "Не достучаться до {service} прямо сейчас. Попробуй чуть позже.",
 
-  /** /np */
-  "np.nothing_playing":
-    "Тишина. Поставь что-нибудь.",
-  "np.prefix":
-    "\u{1F3A7}",
-
-  /** /loved */
-  "loved.header":
-    "\u2764\uFE0F Залюбленные треки:",
-  "loved.empty":
-    "Ещё ничего не залюблено. Слушаешь и не фиксируешь — смелый подход.",
-
-  /** /toplists */
-  "toplists.choose_type":
-    "Исполнители, альбомы или треки — что смотрим?",
-  "toplists.choose_period":
-    "Выбери период:",
-  "toplists.no_data":
-    "Нечего показать за этот период. Что-то ты притих.",
-
-  /** /random */
-  "random.no_history":
-    "Библиотека жидковата. Покорми меня больше.",
-  "random.prefix":
-    "\u{1F3B2}",
-
   /** /collage */
   "collage.generating":
     "Собираю обложки...",
@@ -81,23 +55,9 @@ const ru: Record<string, string> = {
   "listenbrainz.unreachable":
     "ListenBrainz сейчас недоступен. Попробуй позже.",
 
-  /** еженедельный дайджест */
-  "digest.header":
-    "\u{1F4CA} Твоя неделя в музыке:",
-  "digest.scrobble_count":
-    "\u{1F3B5} {count} скробблов за неделю",
-  "digest.top_artists":
-    "\u{1F3C6} Топ исполнителей:",
-  "digest.top_tracks":
-    "\u{1F3B6} Топ треков:",
-
   /** дискавери */
   "discovery.caption":
     "\u{1F3B5} Открытие: <b>{artist}</b> \u2014 {track}",
-
-  /** уведомления */
-  "shout.notification":
-    "\u{1F4E3} Шаут от <b>{author}</b>:",
 };
 
 export default ru;
