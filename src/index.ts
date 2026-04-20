@@ -50,6 +50,6 @@ startWeeklyDigestCron(bot);
 startDiscoveryDispatchCron(bot);
 startSocialNotificationsCron(bot);
 
-console.info("tg-scrobbler starting...");
+console.info("sigil starting...");
 bot.start();
-console.info("tg-scrobbler is running");
+console.info("sigil is running");

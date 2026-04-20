@@ -1,15 +1,14 @@
-# tg-scrobbler
+# sigil
 
-A Telegram bot that scrobbles audio you send it — and doubles as a sharp-witted Last.fm companion.
+A Telegram bot with two scrobble paths — audio you send gets auto-scrobbled, and a daily morning recommendation arrives with a one-click scrobble button. Connects to Last.fm, Libre.fm, and ListenBrainz.
 
 ## What it does
 
-- **Scrobble audio** — send a tagged audio file, it gets scrobbled to your connected services
+- **Auto-scrobble** — send a tagged audio file, it's logged to every connected service
+- **Daily recommendation** — every morning, a track you haven't heard arrives as audio with a "Scrobble this" button
+- **Roulette** — `/roulette` pulls a random loved track from your history and sends it as audio, one click to scrobble again
+- **Album collage** — `/collage` with inline time-frame picker (month / 3 months / year)
 - **Multi-service** — Last.fm, Libre.fm, ListenBrainz
-- **Stats** — now playing, loved tracks, top lists, album collages, random picks
-- **Weekly digest** — auto-generated summary of your top scrobbles with commentary
-- **Song discovery** — twice a week, get a track you've never heard delivered as audio
-- **Social notifications** — Last.fm shouts and messages forwarded to Telegram
 - **Localized** — EN, RU, PT-BR personality lines
 
 ## Setup
@@ -51,7 +50,7 @@ curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr
 sudo chmod a+rx /usr/local/bin/yt-dlp
 
 # clone, build
-git clone <your-repo-url> tg-scrobbler && cd tg-scrobbler
+git clone <your-repo-url> sigil && cd sigil
 npm ci
 npm run build
 npm run db:migrate
@@ -67,14 +66,14 @@ node --env-file=.env dist/index.js
 ### Keep it running (systemd)
 
 ```bash
-sudo tee /etc/systemd/system/tg-scrobbler.service <<EOF
+sudo tee /etc/systemd/system/sigil.service <<EOF
 [Unit]
-Description=tg-scrobbler telegram bot
+Description=sigil telegram bot
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/ubuntu/tg-scrobbler
+WorkingDirectory=/home/ubuntu/sigil
 ExecStart=/usr/bin/node --env-file=.env dist/index.js
 Restart=always
 RestartSec=5
@@ -83,7 +82,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-sudo systemctl enable --now tg-scrobbler
+sudo systemctl enable --now sigil
 ```
 
 ## License

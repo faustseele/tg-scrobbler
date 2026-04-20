@@ -17,7 +17,7 @@ const MIN_AUDIO_BYTES = 10 * 1024;
  */
 export async function downloadTrack(artist: string, track: string): Promise<Buffer | null> {
   const searchQuery = `ytsearch1:${artist} - ${track}`;
-  const tempPath = join(tmpdir(), `tg-scrobbler-${randomUUID()}.m4a`);
+  const tempPath = join(tmpdir(), `sigil-${randomUUID()}.m4a`);
 
   const args = [
     "-f", "bestaudio[ext=m4a]/bestaudio",
