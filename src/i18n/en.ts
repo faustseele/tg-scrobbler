@@ -64,6 +64,13 @@ const en: Record<string, string> = {
   "recommendation.scrobbled": "\u2713 Scrobbled",
   "recommendation.already_scrobbled": "Already scrobbled.",
   "recommendation.not_yours": "That's not your button.",
+
+  /** /roulette */
+  "roulette.loading": "Spinning...",
+  "roulette.empty": "Nothing to spin yet. Go listen to something.",
+  "roulette.caption": "\u{1F3B2} Roulette: <b>{artist}</b> \u2014 {track}",
+  "roulette.scrobble_button": "Scrobble again",
+  "roulette.download_failed": "Couldn't find that one. Try again.",
 };
 
 export default en;

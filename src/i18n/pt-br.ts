@@ -64,6 +64,13 @@ const ptBr: Record<string, string> = {
   "recommendation.scrobbled": "\u2713 Scrobblado",
   "recommendation.already_scrobbled": "Já scrobblado.",
   "recommendation.not_yours": "Esse botão não é seu.",
+
+  /** /roulette */
+  "roulette.loading": "Girando...",
+  "roulette.empty": "Não tem nada pra girar. Ouve alguma coisa primeiro.",
+  "roulette.caption": "\u{1F3B2} Roleta: <b>{artist}</b> \u2014 {track}",
+  "roulette.scrobble_button": "Scrobblar de novo",
+  "roulette.download_failed": "Não achei esse. Tenta de novo.",
 };
 
 export default ptBr;

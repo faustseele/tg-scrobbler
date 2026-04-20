@@ -64,6 +64,13 @@ const ru: Record<string, string> = {
   "recommendation.scrobbled": "\u2713 Заскроблено",
   "recommendation.already_scrobbled": "Уже заскробблено.",
   "recommendation.not_yours": "Эта кнопка не твоя.",
+
+  /** /roulette */
+  "roulette.loading": "Кручу...",
+  "roulette.empty": "Покрутить нечего. Послушай сначала что-нибудь.",
+  "roulette.caption": "\u{1F3B2} Рулетка: <b>{artist}</b> \u2014 {track}",
+  "roulette.scrobble_button": "Заскробблить снова",
+  "roulette.download_failed": "Не нашёл. Попробуй ещё раз.",
 };
 
 export default ru;
