@@ -40,46 +40,50 @@ npm run db:migrate
 
 TypeScript, Node.js, [grammY](https://grammy.dev), [Drizzle ORM](https://orm.drizzle.team), PostgreSQL (Neon)
 
-## Deployment (Fly.io)
+## Deployment (Oracle Cloud / any VPS)
 
-### Prerequisites
-
-- [Fly.io account](https://fly.io)
-- [`flyctl` CLI](https://fly.io/docs/hands-on/install-flyctl/) installed
-
-### Steps
+### On the server
 
 ```bash
-fly auth login
-fly launch --no-deploy   # creates the app, skips first deploy
+# install deps
+sudo apt-get install -y ffmpeg python3 curl
+curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+sudo chmod a+rx /usr/local/bin/yt-dlp
+
+# clone, build
+git clone <your-repo-url> tg-scrobbler && cd tg-scrobbler
+npm ci
+npm run build
+npm run db:migrate
+
+# create .env with your keys
+cp .env.example .env
+# edit .env
+
+# run
+node --env-file=.env dist/index.js
 ```
 
-Set required secrets:
+### Keep it running (systemd)
 
 ```bash
-fly secrets set \
-  BOT_TOKEN=... \
-  DATABASE_URL=... \
-  LASTFM_API_KEY=... \
-  LASTFM_SHARED_SECRET=...
-```
+sudo tee /etc/systemd/system/tg-scrobbler.service <<EOF
+[Unit]
+Description=tg-scrobbler telegram bot
+After=network.target
 
-Optional Libre.fm vars (if you want Libre.fm scrobbling enabled):
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/tg-scrobbler
+ExecStart=/usr/bin/node --env-file=.env dist/index.js
+Restart=always
+RestartSec=5
 
-```bash
-fly secrets set LIBREFM_API_KEY=... LIBREFM_SHARED_SECRET=...
-```
+[Install]
+WantedBy=multi-user.target
+EOF
 
-Run database migrations:
-
-```bash
-fly ssh console -C "npx drizzle-kit migrate"
-```
-
-Deploy:
-
-```bash
-fly deploy
+sudo systemctl enable --now tg-scrobbler
 ```
 
 ## License
