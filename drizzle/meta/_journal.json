@@ -8,6 +8,13 @@
       "when": 1775476515354,
       "tag": "0000_chubby_the_order",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776712973533,
+      "tag": "0001_loving_leech",
+      "breakpoints": true
     }
   ]
 }

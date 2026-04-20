@@ -1,7 +1,8 @@
 import cron from "node-cron";
-import { Bot, InputFile } from "grammy";
+import { Bot, InputFile, InlineKeyboard } from "grammy";
+import { eq } from "drizzle-orm";
 import { db } from "../db.js";
-import { sentDiscoveries } from "../schema.js";
+import { sentDiscoveries, pendingScrobbles } from "../schema.js";
 import { fetchLastfmConnectedUsers, LastfmConnectedUser } from "../user-lookup.js";
 import { getRecommendations } from "../recommendations.js";
 import { downloadTrack } from "../yt-dlp.js";
@@ -40,16 +41,49 @@ async function dispatchForUser(bot: Bot, user: LastfmConnectedUser): Promise<voi
       track: escapeHtml(track),
     });
 
-    await bot.api.sendAudio(
-      String(user.telegramId),
-      new InputFile(audioBuffer, filename),
-      {
-        title: track,
-        performer: artist,
-        caption,
-        parse_mode: "HTML",
-      }
+    /** insert pending row first so we have the id for the button callback_data */
+    const pendingInsertResult = await db
+      .insert(pendingScrobbles)
+      .values({ userId: user.userId, artist, track, album: null })
+      .returning({ id: pendingScrobbles.id });
+
+    const pendingRow = pendingInsertResult[0];
+    if (!pendingRow) {
+      console.error(
+        `discovery dispatch: pendingScrobbles insert returned no id for userId=${user.userId} — skipping send`
+      );
+      continue;
+    }
+
+    const keyboard = new InlineKeyboard().text(
+      t("recommendation.scrobble_button", lang),
+      `rec:${pendingRow.id}`
     );
+
+    try {
+      await bot.api.sendAudio(
+        String(user.telegramId),
+        new InputFile(audioBuffer, filename),
+        {
+          title: track,
+          performer: artist,
+          caption,
+          parse_mode: "HTML",
+          reply_markup: keyboard,
+        }
+      );
+    } catch (sendError) {
+      /** clean up orphaned pending row when send fails */
+      try {
+        await db.delete(pendingScrobbles).where(eq(pendingScrobbles.id, pendingRow.id));
+      } catch (cleanupError) {
+        console.error(
+          `discovery dispatch: failed to clean up pendingScrobbles id=${pendingRow.id} after send failure`,
+          cleanupError
+        );
+      }
+      throw sendError;
+    }
 
     await db.insert(sentDiscoveries).values({ userId: user.userId, trackKey });
 
@@ -62,14 +96,14 @@ async function dispatchForUser(bot: Bot, user: LastfmConnectedUser): Promise<voi
 }
 
 /**
- * register the discovery dispatch cron job. fires Wednesday and Saturday at 10:00 UTC.
+ * register the discovery dispatch cron job. fires daily at 09:00 UTC.
  * fetches all users with a Last.fm connection, picks the first downloadable recommendation,
  * and sends it as an audio message. per-user failures are caught individually
  * so one bad dispatch doesn't abort the rest.
  */
 export function startDiscoveryDispatchCron(bot: Bot): void {
   cron.schedule(
-    "0 10 * * 3,6",
+    "0 9 * * *",
     async () => {
       let lastfmUsers: LastfmConnectedUser[];
       try {

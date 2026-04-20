@@ -58,6 +58,12 @@ const en: Record<string, string> = {
   /** discovery dispatch cron */
   "discovery.caption":
     "\u{1F3B5} Discovery: <b>{artist}</b> \u2014 {track}",
+
+  /** scrobble button on discovery messages */
+  "recommendation.scrobble_button": "Scrobble this",
+  "recommendation.scrobbled": "\u2713 Scrobbled",
+  "recommendation.already_scrobbled": "Already scrobbled.",
+  "recommendation.not_yours": "That's not your button.",
 };
 
 export default en;

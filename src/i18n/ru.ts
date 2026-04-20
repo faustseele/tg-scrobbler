@@ -58,6 +58,12 @@ const ru: Record<string, string> = {
   /** дискавери */
   "discovery.caption":
     "\u{1F3B5} Открытие: <b>{artist}</b> \u2014 {track}",
+
+  /** кнопка скробблинга на discovery-сообщениях */
+  "recommendation.scrobble_button": "Заскробблить",
+  "recommendation.scrobbled": "\u2713 Заскроблено",
+  "recommendation.already_scrobbled": "Уже заскробблено.",
+  "recommendation.not_yours": "Эта кнопка не твоя.",
 };
 
 export default ru;

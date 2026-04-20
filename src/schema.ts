@@ -56,3 +56,18 @@ export const sentDiscoveries = pgTable(
   },
   (table) => [unique().on(table.userId, table.trackKey)],
 );
+
+/** short-lived queue of scrobbles awaiting the user's button click
+ *  (bot-sent recommendations and roulette picks).
+ *  a row is inserted when the bot sends an audio with a scrobble button,
+ *  and removed once the user clicks it */
+export const pendingScrobbles = pgTable("pending_scrobbles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
+  artist: text("artist").notNull(),
+  track: text("track").notNull(),
+  album: text("album"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

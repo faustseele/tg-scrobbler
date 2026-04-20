@@ -58,6 +58,12 @@ const ptBr: Record<string, string> = {
   /** cron de discovery */
   "discovery.caption":
     "\u{1F3B5} Discovery: <b>{artist}</b> \u2014 {track}",
+
+  /** botão de scrobble nas mensagens de discovery */
+  "recommendation.scrobble_button": "Scrobblar",
+  "recommendation.scrobbled": "\u2713 Scrobblado",
+  "recommendation.already_scrobbled": "Já scrobblado.",
+  "recommendation.not_yours": "Esse botão não é seu.",
 };
 
 export default ptBr;

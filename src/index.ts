@@ -5,6 +5,7 @@ import loginLibrefm from "./commands/login-librefm.js";
 import loginListenbrainz from "./commands/login-listenbrainz.js";
 import scrobble from "./commands/scrobble.js";
 import collage from "./commands/collage.js";
+import scrobbleCallback from "./commands/scrobble-callback.js";
 import { startDiscoveryDispatchCron } from "./cron/discovery-dispatch.js";
 
 const botToken = process.env.BOT_TOKEN;
@@ -24,6 +25,7 @@ bot.use(loginLibrefm);
 bot.use(loginListenbrainz);
 bot.use(scrobble);
 bot.use(collage);
+bot.use(scrobbleCallback);
 
 const shutdown = () => {
   bot.stop();
