@@ -77,27 +77,6 @@ async function findConnection(
 }
 
 /**
- * resolve the best available stats connection for a telegram user.
- * tries Last.fm first, then ListenBrainz. returns the connection
- * and which service it came from, or null if neither exists.
- */
-export async function resolveStatsConnection(
-  telegramId: bigint
-): Promise<{ service: "lastfm" | "listenbrainz"; userId: number; serviceUsername: string } | null> {
-  const lastfm = await findConnection(telegramId, "lastfm");
-  if (lastfm) {
-    return { service: "lastfm", ...lastfm };
-  }
-
-  const listenbrainz = await findConnection(telegramId, "listenbrainz");
-  if (listenbrainz) {
-    return { service: "listenbrainz", ...listenbrainz };
-  }
-
-  return null;
-}
-
-/**
  * resolve a Last.fm connection specifically.
  * returns null if the user has no Last.fm connection.
  */

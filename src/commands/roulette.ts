@@ -1,15 +1,44 @@
-import { Composer, Context, InputFile, InlineKeyboard } from "grammy";
-import { eq } from "drizzle-orm";
-import { db } from "../db.js";
-import { pendingScrobbles } from "../schema.js";
+import { Composer, Context } from "grammy";
 import { lastfmConfig } from "../config.js";
 import { getLovedTracks, getTopTracks } from "../lastfm.js";
 import { resolveLastfmConnection } from "../user-lookup.js";
 import { downloadTrack } from "../yt-dlp.js";
 import { escapeHtml } from "../utils.js";
 import { t } from "../i18n/index.js";
+import { sendScrobbleableAudio } from "../scrobble-delivery.js";
 
 const composer = new Composer<Context>();
+
+/** one candidate in the roulette pool — artist+track only, since the pool discards Last.fm metadata */
+interface RouletteEntry {
+  artist: string;
+  track: string;
+}
+
+/**
+ * build the roulette candidate pool. loved tracks first (the user's curated favourites),
+ * falling back to their all-time top tracks when the loved list is empty or unreachable.
+ */
+async function buildPool(userId: number, serviceUsername: string): Promise<RouletteEntry[]> {
+  try {
+    const lovedTracks = await getLovedTracks(lastfmConfig, serviceUsername, 100);
+    if (lovedTracks.length) {
+      return lovedTracks.map((entry) => ({ artist: entry.artist, track: entry.track }));
+    }
+  } catch (lovedError) {
+    console.warn(`roulette: loved tracks fetch failed for userId=${userId}`, lovedError);
+  }
+
+  try {
+    const topTracks = await getTopTracks(lastfmConfig, serviceUsername, "overall", 100);
+    return topTracks
+      .filter((entry) => entry.artist !== null)
+      .map((entry) => ({ artist: entry.artist as string, track: entry.name }));
+  } catch (topError) {
+    console.warn(`roulette: top tracks fetch failed for userId=${userId}`, topError);
+    return [];
+  }
+}
 
 /**
  * /roulette — pick a random track from the user's loved or top tracks,
@@ -32,35 +61,12 @@ composer.command("roulette", async (context) => {
   const { userId, serviceUsername } = connection;
 
   const loadingMessage = await context.reply(t("roulette.loading", lang));
+  const deleteLoadingMessage = (): Promise<unknown> =>
+    context.api.deleteMessage(loadingMessage.chat.id, loadingMessage.message_id);
 
-  /** build a pool from loved tracks first, fall back to all-time top tracks */
-  interface RouletteEntry {
-    artist: string;
-    track: string;
-  }
-
-  let pool: RouletteEntry[] = [];
-
-  try {
-    const lovedTracks = await getLovedTracks(lastfmConfig, serviceUsername, 100);
-    pool = lovedTracks.map((entry) => ({ artist: entry.artist, track: entry.track }));
-  } catch (lovedError) {
-    console.warn(`roulette: loved tracks fetch failed for userId=${userId}`, lovedError);
-  }
-
+  const pool = await buildPool(userId, serviceUsername);
   if (!pool.length) {
-    try {
-      const topTracks = await getTopTracks(lastfmConfig, serviceUsername, "overall", 100);
-      pool = topTracks
-        .filter((entry) => entry.artist !== null)
-        .map((entry) => ({ artist: entry.artist as string, track: entry.name }));
-    } catch (topError) {
-      console.warn(`roulette: top tracks fetch failed for userId=${userId}`, topError);
-    }
-  }
-
-  if (!pool.length) {
-    await context.api.deleteMessage(loadingMessage.chat.id, loadingMessage.message_id);
+    await deleteLoadingMessage();
     await context.reply(t("roulette.empty", lang));
     return;
   }
@@ -70,31 +76,10 @@ composer.command("roulette", async (context) => {
 
   const audioBuffer = await downloadTrack(artist, track);
   if (!audioBuffer) {
-    await context.api.deleteMessage(loadingMessage.chat.id, loadingMessage.message_id);
+    await deleteLoadingMessage();
     await context.reply(t("roulette.download_failed", lang));
     return;
   }
-
-  /** insert pending row first so we have the id for the button callback_data */
-  const pendingInsertResult = await db
-    .insert(pendingScrobbles)
-    .values({ userId, artist, track, album: null })
-    .returning({ id: pendingScrobbles.id });
-
-  const pendingRow = pendingInsertResult[0];
-  if (!pendingRow) {
-    console.error(
-      `roulette: pendingScrobbles insert returned no id for userId=${userId} — aborting send`
-    );
-    await context.api.deleteMessage(loadingMessage.chat.id, loadingMessage.message_id);
-    await context.reply(t("common.service_error", lang, { service: "the bot" }));
-    return;
-  }
-
-  const keyboard = new InlineKeyboard().text(
-    t("roulette.scrobble_button", lang),
-    `rec:${pendingRow.id}`
-  );
 
   const caption = t("roulette.caption", lang, {
     artist: escapeHtml(artist),
@@ -102,32 +87,31 @@ composer.command("roulette", async (context) => {
   });
 
   try {
-    await context.replyWithAudio(
-      new InputFile(audioBuffer, `${artist} - ${track}.m4a`),
+    const sent = await sendScrobbleableAudio(
       {
-        title: track,
-        performer: artist,
+        userId,
+        artist,
+        track,
+        audioBuffer,
+        filename: `${artist} - ${track}.m4a`,
         caption,
-        parse_mode: "HTML",
-        reply_markup: keyboard,
-      }
+        buttonLabel: t("roulette.scrobble_button", lang),
+      },
+      (audio, options) => context.replyWithAudio(audio, options),
     );
-  } catch (sendError) {
-    /** clean up orphaned pending row when send fails */
-    console.warn(`roulette: audio send failed for userId=${userId} — cleaning up pending row`, sendError);
-    try {
-      await db.delete(pendingScrobbles).where(eq(pendingScrobbles.id, pendingRow.id));
-    } catch (cleanupError) {
-      console.error(
-        `roulette: failed to clean up pendingScrobbles id=${pendingRow.id} after send failure`,
-        cleanupError
-      );
+    if (!sent) {
+      await deleteLoadingMessage();
+      await context.reply(t("common.service_error", lang, { service: "the bot" }));
+      return;
     }
-    await context.api.deleteMessage(loadingMessage.chat.id, loadingMessage.message_id);
+  } catch (sendError) {
+    /** helper already logged + cleaned up the pending row */
+    console.warn(`roulette: audio send failed for userId=${userId}`, sendError);
+    await deleteLoadingMessage();
     return;
   }
 
-  await context.api.deleteMessage(loadingMessage.chat.id, loadingMessage.message_id);
+  await deleteLoadingMessage();
 });
 
 export default composer;

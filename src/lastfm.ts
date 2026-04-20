@@ -183,7 +183,7 @@ export function getAuthUrl(config: LastfmConfig, token: string): string {
 }
 
 /** normalised loved track data from user.getLovedTracks */
-export interface LovedTrack {
+interface LovedTrack {
   artist: string;
   track: string;
   trackUrl: string;
@@ -271,50 +271,6 @@ interface LastfmTopTrackEntry {
 }
 
 /**
- * shared fetch + parse for all three user.getTop* methods —
- * each differs only in method name, response key, and entry shape
- */
-async function fetchTopList<TEntry>(
-  config: LastfmConfig,
-  method: string,
-  responseKey: string,
-  listKey: string,
-  username: string,
-  period: TopPeriod,
-  limit: number,
-  toTopItem: (entry: TEntry) => TopItem
-): Promise<TopItem[]> {
-  const url = new URL(config.apiUrl);
-  url.searchParams.set("method", method);
-  url.searchParams.set("user", username);
-  url.searchParams.set("api_key", config.apiKey);
-  url.searchParams.set("period", period);
-  url.searchParams.set("limit", String(limit));
-  url.searchParams.set("format", "json");
-
-  const response = await fetch(url.toString());
-  const data: unknown = await response.json();
-
-  if (isLastfmError(data)) {
-    console.warn(`${method} failed — error ${data.error}: ${data.message}`);
-    return [];
-  }
-
-  const wrapper = (data as Record<string, unknown>)[responseKey];
-  if (typeof wrapper !== "object" || wrapper === null) {
-    console.warn(`${method} — unexpected response shape`);
-    return [];
-  }
-
-  const entries = (wrapper as Record<string, unknown>)[listKey];
-  if (!Array.isArray(entries)) {
-    return [];
-  }
-
-  return (entries as TEntry[]).map(toTopItem);
-}
-
-/**
  * fetch the user's top albums with album art URLs for a given period
  * via user.getTopAlbums — no signature required.
  * unlike getTopAlbums, this preserves the image array so callers can
@@ -362,6 +318,11 @@ export async function getTopAlbumsWithArt(
   });
 }
 
+/** shape of a successful user.getTopTracks response */
+interface TopTracksResponse {
+  toptracks: { track: LastfmTopTrackEntry[] };
+}
+
 /**
  * fetch the user's top tracks for a given period via user.getTopTracks —
  * no signature required
@@ -372,21 +333,33 @@ export async function getTopTracks(
   period: TopPeriod = "overall",
   limit: number = 10
 ): Promise<TopItem[]> {
-  return fetchTopList<LastfmTopTrackEntry>(
-    config,
-    "user.gettoptracks",
-    "toptracks",
-    "track",
-    username,
-    period,
-    limit,
-    (entry) => ({
-      name: entry.name,
-      playCount: Number(entry.playcount),
-      url: entry.url,
-      artist: entry.artist.name,
-    })
-  );
+  const url = new URL(config.apiUrl);
+  url.searchParams.set("method", "user.gettoptracks");
+  url.searchParams.set("user", username);
+  url.searchParams.set("api_key", config.apiKey);
+  url.searchParams.set("period", period);
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("format", "json");
+
+  const response = await fetch(url.toString());
+  const data: unknown = await response.json();
+
+  if (isLastfmError(data)) {
+    console.warn(`user.gettoptracks failed — error ${data.error}: ${data.message}`);
+    return [];
+  }
+
+  const tracks = (data as TopTracksResponse).toptracks?.track;
+  if (!Array.isArray(tracks)) {
+    return [];
+  }
+
+  return tracks.map((entry) => ({
+    name: entry.name,
+    playCount: Number(entry.playcount),
+    url: entry.url,
+    artist: entry.artist.name,
+  }));
 }
 
 /** normalised similar track entry returned by track.getSimilar */

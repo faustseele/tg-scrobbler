@@ -1,13 +1,13 @@
 import cron from "node-cron";
-import { Bot, InputFile, InlineKeyboard } from "grammy";
-import { eq } from "drizzle-orm";
+import { Bot } from "grammy";
 import { db } from "../db.js";
-import { sentDiscoveries, pendingScrobbles } from "../schema.js";
+import { sentDiscoveries } from "../schema.js";
 import { fetchLastfmConnectedUsers, LastfmConnectedUser } from "../user-lookup.js";
 import { getRecommendations } from "../recommendations.js";
 import { downloadTrack } from "../yt-dlp.js";
 import { escapeHtml } from "../utils.js";
 import { t } from "../i18n/index.js";
+import { sendScrobbleableAudio } from "../scrobble-delivery.js";
 
 /**
  * attempt to download and send the first successful recommendation for a user.
@@ -22,6 +22,10 @@ async function dispatchForUser(bot: Bot, user: LastfmConnectedUser): Promise<voi
     return;
   }
 
+  const lang = user.language ?? "en";
+  const buttonLabel = t("recommendation.scrobble_button", lang);
+  const chatId = String(user.telegramId);
+
   for (const candidate of candidates) {
     const { artist, track } = candidate;
     const audioBuffer = await downloadTrack(artist, track);
@@ -34,56 +38,25 @@ async function dispatchForUser(bot: Bot, user: LastfmConnectedUser): Promise<voi
     }
 
     const trackKey = `${artist.toLowerCase()} - ${track.toLowerCase()}`;
-    const filename = `${artist} - ${track}.m4a`;
-    const lang = user.language ?? "en";
     const caption = t("discovery.caption", lang, {
       artist: escapeHtml(artist),
       track: escapeHtml(track),
     });
 
-    /** insert pending row first so we have the id for the button callback_data */
-    const pendingInsertResult = await db
-      .insert(pendingScrobbles)
-      .values({ userId: user.userId, artist, track, album: null })
-      .returning({ id: pendingScrobbles.id });
-
-    const pendingRow = pendingInsertResult[0];
-    if (!pendingRow) {
-      console.error(
-        `discovery dispatch: pendingScrobbles insert returned no id for userId=${user.userId} — skipping send`
-      );
-      continue;
-    }
-
-    const keyboard = new InlineKeyboard().text(
-      t("recommendation.scrobble_button", lang),
-      `rec:${pendingRow.id}`
+    const sent = await sendScrobbleableAudio(
+      {
+        userId: user.userId,
+        artist,
+        track,
+        audioBuffer,
+        filename: `${artist} - ${track}.m4a`,
+        caption,
+        buttonLabel,
+      },
+      (audio, options) => bot.api.sendAudio(chatId, audio, options),
     );
 
-    try {
-      await bot.api.sendAudio(
-        String(user.telegramId),
-        new InputFile(audioBuffer, filename),
-        {
-          title: track,
-          performer: artist,
-          caption,
-          parse_mode: "HTML",
-          reply_markup: keyboard,
-        }
-      );
-    } catch (sendError) {
-      /** clean up orphaned pending row when send fails */
-      try {
-        await db.delete(pendingScrobbles).where(eq(pendingScrobbles.id, pendingRow.id));
-      } catch (cleanupError) {
-        console.error(
-          `discovery dispatch: failed to clean up pendingScrobbles id=${pendingRow.id} after send failure`,
-          cleanupError
-        );
-      }
-      throw sendError;
-    }
+    if (!sent) continue;
 
     await db.insert(sentDiscoveries).values({ userId: user.userId, trackKey });
 
