@@ -12,12 +12,26 @@ const ru: Record<string, string> = {
     "Не достучаться до {service} прямо сейчас. Попробуй чуть позже.",
 
   /** /collage */
+  "collage.choose_period":
+    "Выбери период:",
+  "collage.period_month_button":
+    "Месяц",
+  "collage.period_3month_button":
+    "3 месяца",
+  "collage.period_year_button":
+    "Год",
+  "collage.period_month":
+    "за месяц",
+  "collage.period_3month":
+    "за 3 месяца",
+  "collage.period_year":
+    "за год",
   "collage.generating":
     "Собираю обложки...",
   "collage.no_history":
     "Альбомов не хватает для коллажа. Слушай дальше.",
   "collage.caption":
-    "Коллаж {username} за {period}",
+    "Коллаж {username} \u2014 {period}",
 
   /** скробблинг аудио */
   "scrobble.no_connections":

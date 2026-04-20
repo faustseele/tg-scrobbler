@@ -12,12 +12,26 @@ const ptBr: Record<string, string> = {
     "Não consegui falar com o {service} agora. Tenta de novo em um instante.",
 
   /** /collage */
+  "collage.choose_period":
+    "Escolhe um per\u00EDodo:",
+  "collage.period_month_button":
+    "M\u00EAs",
+  "collage.period_3month_button":
+    "3 meses",
+  "collage.period_year_button":
+    "Ano",
+  "collage.period_month":
+    "\u00FAltimo m\u00EAs",
+  "collage.period_3month":
+    "\u00FAltimos 3 meses",
+  "collage.period_year":
+    "\u00FAltimo ano",
   "collage.generating":
     "Montando a grade de capas...",
   "collage.no_history":
     "Álbuns de menos pra preencher o grid. Continua ouvindo.",
   "collage.caption":
-    "collage de álbuns de {username} — {period}",
+    "collage de álbuns de {username} \u2014 {period}",
 
   /** scrobble via áudio */
   "scrobble.no_connections":

@@ -12,6 +12,20 @@ const en: Record<string, string> = {
     "Couldn't reach {service} right now. Try again in a moment.",
 
   /** /collage */
+  "collage.choose_period":
+    "Pick a time-frame:",
+  "collage.period_month_button":
+    "Month",
+  "collage.period_3month_button":
+    "3 Months",
+  "collage.period_year_button":
+    "Year",
+  "collage.period_month":
+    "last month",
+  "collage.period_3month":
+    "last 3 months",
+  "collage.period_year":
+    "last year",
   "collage.generating":
     "Pulling the art together...",
   "collage.no_history":
